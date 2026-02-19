@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { type Theme, THEME_LABELS, SENTENCES_MAP } from '@/lib/sentences'
 
 interface GameResult {
   time: number
@@ -15,22 +16,10 @@ interface Props {
   onChangeNickname: () => void
 }
 
-const SENTENCES = [
-  '안녕하세요. 오늘 날씨가 정말 좋네요.',
-  '프로그래밍을 배우는 것은 매우 재미있습니다.',
-  'React와 TypeScript로 만든 타자 게임입니다.',
-  '빠르고 정확한 타이핑을 연습해보세요.',
-  '컴퓨터를 사용할 때 타자 속도가 중요합니다.',
-  '한글과 영어를 모두 연습할 수 있습니다.',
-  '매일 조금씩 연습하면 실력이 늘어납니다.',
-  '타자 게임을 통해 재미있게 연습해보세요.',
-  '정확도와 속도를 모두 고려해야 합니다.',
-  '꾸준한 연습이 실력 향상의 비결입니다.',
-]
-
 type SubmitStatus = 'idle' | 'submitting' | 'success' | 'error'
 
 const TypingGame: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNickname }) => {
+  const [selectedTheme, setSelectedTheme] = useState<Theme>('park')
   const [currentSentence, setCurrentSentence] = useState('')
   const [userInput, setUserInput] = useState('')
   const [isGameStarted, setIsGameStarted] = useState(false)
@@ -43,8 +32,9 @@ const TypingGame: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNickn
   const inputRef = useRef<HTMLInputElement>(null)
 
   const startGame = () => {
-    const randomIndex = Math.floor(Math.random() * SENTENCES.length)
-    setCurrentSentence(SENTENCES[randomIndex])
+    const sentences = SENTENCES_MAP[selectedTheme]
+    const randomIndex = Math.floor(Math.random() * sentences.length)
+    setCurrentSentence(sentences[randomIndex])
     setUserInput('')
     setIsGameStarted(true)
     setIsGameFinished(false)
@@ -150,6 +140,17 @@ const TypingGame: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNickn
 
       {!isGameStarted && !isGameFinished && (
         <div className="start-screen">
+          <div className="theme-selector">
+            {(Object.keys(THEME_LABELS) as Theme[]).map((theme) => (
+              <button
+                key={theme}
+                onClick={() => setSelectedTheme(theme)}
+                className={`theme-btn${selectedTheme === theme ? ' active' : ''}`}
+              >
+                {THEME_LABELS[theme]}
+              </button>
+            ))}
+          </div>
           <p>아래 버튼을 클릭하여 게임을 시작하세요!</p>
           <button onClick={startGame} className="start-button">게임 시작</button>
         </div>
