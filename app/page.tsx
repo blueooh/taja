@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import TypingGame from '@/components/TypingGame'
+import ChatBox from '@/components/ChatBox'
 import Scoreboard from '@/components/Scoreboard'
 
 const NICKNAME_REGEX = /^[a-zA-Z0-9가-힣_]{1,20}$/
@@ -77,6 +78,7 @@ export default function Home() {
   return (
     <div className="main-layout">
       <TypingGame nickname={nickname} onScoreSubmitted={handleScoreSubmitted} onChangeNickname={handleChangeNickname} />
+      <ChatBox nickname={nickname} />
       <Scoreboard nickname={nickname} scoreVersion={scoreVersion} />
     </div>
   )
