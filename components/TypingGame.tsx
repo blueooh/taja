@@ -172,6 +172,9 @@ const TypingGame: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNickn
             type="text"
             value={userInput}
             onChange={handleInputChange}
+            onPaste={e => e.preventDefault()}
+            onCopy={e => e.preventDefault()}
+            onCut={e => e.preventDefault()}
             placeholder="여기에 타이핑하세요..."
             className="typing-input"
             disabled={isGameFinished}
