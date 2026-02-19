@@ -9,7 +9,7 @@ function createRedisClient(): Redis {
   }
   const client = new Redis(url, {
     maxRetriesPerRequest: 3,
-    lazyConnect: false,
+    lazyConnect: true,
   })
   client.on('error', (err) => {
     console.error('Redis 연결 오류:', err)
