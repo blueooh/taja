@@ -508,6 +508,41 @@ body {
   50% { opacity: 0.3; }
 }
 
+.chatbox-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chatbox-notif-btn {
+  background: #f0f0f0;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  opacity: 0.6;
+}
+
+.chatbox-notif-btn:hover:not(:disabled) {
+  background: #e0e0e0;
+  opacity: 1;
+}
+
+.chatbox-notif-btn--on {
+  opacity: 1;
+  background: #e8f5e9;
+}
+
+.chatbox-notif-btn:disabled {
+  cursor: default;
+}
+
 .chatbox-badge {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;

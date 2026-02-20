@@ -12,15 +12,43 @@ interface Props {
   nickname: string
 }
 
+function sendBrowserNotification(title: string, body: string) {
+  if (Notification.permission !== 'granted') return
+  if (document.hasFocus()) return
+
+  const notif = new Notification(title, {
+    body,
+    icon: '/favicon.ico',
+    tag: 'chat-message',
+  })
+  notif.onclick = () => {
+    window.focus()
+    notif.close()
+  }
+}
+
 export default function ChatBox({ nickname }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [wsStatus, setWsStatus] = useState<WsStatus>('connecting')
+  const [notifPerm, setNotifPerm] = useState<NotificationPermission>('default')
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if ('Notification' in window) {
+      setNotifPerm(Notification.permission)
+    }
+  }, [])
+
+  const requestNotifPermission = async () => {
+    if (!('Notification' in window)) return
+    const result = await Notification.requestPermission()
+    setNotifPerm(result)
+  }
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -62,6 +90,13 @@ export default function ChatBox({ nickname }: Props) {
             }
             return [...prev, incoming]
           })
+
+          if (incoming.nickname !== nickname) {
+            sendBrowserNotification(
+              `💬 ${incoming.nickname}`,
+              incoming.content
+            )
+          }
         }
       )
       .subscribe((status) => {
@@ -73,7 +108,7 @@ export default function ChatBox({ nickname }: Props) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [])
+  }, [nickname])
 
   useEffect(() => {
     if (listRef.current) {
@@ -111,17 +146,40 @@ export default function ChatBox({ nickname }: Props) {
     setSending(false)
   }
 
+  const notifButtonLabel =
+    notifPerm === 'granted' ? '🔔' :
+    notifPerm === 'denied'  ? '🔕' : '🔔'
+
+  const notifButtonTitle =
+    notifPerm === 'granted' ? '알림 켜짐' :
+    notifPerm === 'denied'  ? '알림이 브라우저에서 차단됨' : '알림 켜기'
+
   return (
     <div className="chatbox">
       <div className="chatbox-header">
         <div className="chatbox-header-left">
           <h2>💬 소통 공간</h2>
-          <span className={`chatbox-ws-dot chatbox-ws-dot--${wsStatus}`} title={
-            wsStatus === 'connected' ? '실시간 연결됨' :
-            wsStatus === 'error' ? '연결 오류' : '연결 중'
-          } />
+          <span
+            className={`chatbox-ws-dot chatbox-ws-dot--${wsStatus}`}
+            title={
+              wsStatus === 'connected' ? '실시간 연결됨' :
+              wsStatus === 'error' ? '연결 오류' : '연결 중'
+            }
+          />
         </div>
-        <span className="chatbox-badge">{nickname}</span>
+        <div className="chatbox-header-right">
+          {notifPerm !== 'denied' && (
+            <button
+              className={`chatbox-notif-btn ${notifPerm === 'granted' ? 'chatbox-notif-btn--on' : ''}`}
+              onClick={requestNotifPermission}
+              title={notifButtonTitle}
+              disabled={notifPerm === 'granted'}
+            >
+              {notifButtonLabel}
+            </button>
+          )}
+          <span className="chatbox-badge">{nickname}</span>
+        </div>
       </div>
 
       <div className="chatbox-list" ref={listRef}>
