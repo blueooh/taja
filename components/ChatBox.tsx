@@ -111,10 +111,15 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle }: Props) {
     setError(null)
     inputRef.current?.focus()
 
-    const { error } = await supabase.from('messages').insert({ nickname, content })
-    if (error) {
+    const res = await fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    })
+    const json = await res.json()
+    if (!json.success) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId))
-      setError('전송 실패')
+      setError(json.error ?? '전송 실패')
     }
     setSending(false)
   }
