@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '타자 게임',
+  title: '타짜',
   description: '빠르고 정확한 타이핑을 연습해보세요!',
 }
 
