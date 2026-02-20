@@ -1,14 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { ScoreEntry } from '@/app/api/scores/route'
+import type { ScoreEntry, GameType } from '@/app/api/scores/route'
 
 interface Props {
   nickname: string
   scoreVersion: number
+  gameType: GameType
 }
 
-const Scoreboard: React.FC<Props> = ({ nickname, scoreVersion }) => {
+const Scoreboard: React.FC<Props> = ({ nickname, scoreVersion, gameType }) => {
   const [entries, setEntries] = useState<ScoreEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -17,7 +18,7 @@ const Scoreboard: React.FC<Props> = ({ nickname, scoreVersion }) => {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/scores')
+      const res = await fetch(`/api/scores?gameType=${gameType}`)
       const json = await res.json()
       if (json.success) {
         setEntries(json.data)
@@ -83,7 +84,7 @@ const Scoreboard: React.FC<Props> = ({ nickname, scoreVersion }) => {
             <tr>
               <th>순위</th>
               <th>닉네임</th>
-              <th>WPM</th>
+              <th>{gameType === 'acidrain' ? '점수' : 'WPM'}</th>
               <th>정확도</th>
               <th>날짜</th>
             </tr>

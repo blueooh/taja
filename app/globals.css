@@ -17,21 +17,50 @@ body {
   margin: 0 auto;
   padding: 20px;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr;
   gap: 24px;
   align-items: start;
 }
 
-@media (max-width: 1100px) {
-  .main-layout {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 700px) {
+@media (max-width: 900px) {
   .main-layout {
     grid-template-columns: 1fr;
   }
+}
+
+/* ===== 게임 컬럼 (타자게임 + 산성비 세로) ===== */
+.games-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ===== 게임패널 (게임 + 스코어보드 가로) ===== */
+.game-panel {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: row;
+  height: 520px;
+  overflow: hidden;
+}
+
+.game-panel .typing-game {
+  flex: 1;
+  height: 100%;
+  box-shadow: none;
+  border-radius: 0;
+  border-right: 2px solid #f0f0f0;
+  overflow-y: auto;
+}
+
+.game-panel .scoreboard {
+  flex: 1;
+  height: 100%;
+  box-shadow: none;
+  border-radius: 0;
+  overflow-y: auto;
 }
 
 /* ===== 닉네임 입력 화면 ===== */
@@ -495,7 +524,9 @@ body {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
-  height: 520px;
+  position: sticky;
+  top: 20px;
+  height: calc(100vh - 40px);
   overflow: hidden;
 }
 
@@ -976,4 +1007,71 @@ body {
   .chat-message {
     max-width: 85%;
   }
+}
+
+/* ===== 산성비 게임 ===== */
+.acid-rain-game {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  overflow: hidden;
+  border-right: 2px solid #f0f0f0;
+}
+
+.acid-rain-game h2 {
+  font-size: 1.4rem;
+  margin-bottom: 10px;
+  color: #333;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 10px;
+}
+
+.acid-rain-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.acid-rain-area {
+  height: 280px;
+  flex-shrink: 0;
+  position: relative;
+  background: #0a0a1e;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.falling-word {
+  position: absolute;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #7bed9f;
+  text-shadow: 0 0 8px rgba(123, 237, 159, 0.7);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  line-height: 1;
+}
+
+.falling-word--highlight {
+  color: #ffd700;
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.9);
+}
+
+.acid-rain-ground {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: linear-gradient(90deg, #ff4500, #ff6b35, #ff4500);
+  box-shadow: 0 -2px 12px rgba(255, 69, 0, 0.6);
 }

@@ -62,7 +62,7 @@ const TypingGame: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNickn
       const res = await fetch('/api/scores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname, wpm, accuracy, time: timeInSeconds }),
+        body: JSON.stringify({ nickname, wpm, accuracy, time: timeInSeconds, gameType: 'typing' }),
       })
       const json = await res.json()
       if (json.success) {
@@ -127,7 +127,7 @@ const TypingGame: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNickn
 
   return (
     <div className="typing-game">
-      <h2>타자 게임</h2>
+      <h2>스피드</h2>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
         <div className="player-badge">👤 {nickname}</div>
         <button

@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import TypingGame from '@/components/TypingGame'
+import GamePanel from '@/components/GamePanel'
 import ChatBox from '@/components/ChatBox'
-import Scoreboard from '@/components/Scoreboard'
 
 const NICKNAME_REGEX = /^[a-zA-Z0-9가-힣_]{1,20}$/
 const STORAGE_KEY = 'taja:nickname'
@@ -11,7 +10,8 @@ const STORAGE_KEY = 'taja:nickname'
 export default function Home() {
   const [nickname, setNickname] = useState<string | null | undefined>(undefined)
   const [inputValue, setInputValue] = useState('')
-  const [scoreVersion, setScoreVersion] = useState(0)
+  const [typingScoreVersion, setTypingScoreVersion] = useState(0)
+  const [acidRainScoreVersion, setAcidRainScoreVersion] = useState(0)
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
@@ -35,17 +35,13 @@ export default function Home() {
     setInputValue('')
   }
 
-  const handleScoreSubmitted = () => {
-    setScoreVersion(v => v + 1)
-  }
-
   if (nickname === undefined) return null
 
   if (!nickname) {
     return (
       <div className="nickname-screen">
         <div className="nickname-card">
-          <h1>타자 게임</h1>
+          <h1>스피드</h1>
           <p>닉네임을 입력하고 게임을 시작하세요!</p>
           <form onSubmit={handleNicknameSubmit}>
             <input
@@ -77,9 +73,15 @@ export default function Home() {
 
   return (
     <div className="main-layout">
-      <TypingGame nickname={nickname} onScoreSubmitted={handleScoreSubmitted} onChangeNickname={handleChangeNickname} />
+      <GamePanel
+        nickname={nickname}
+        onTypingScoreSubmitted={() => setTypingScoreVersion(v => v + 1)}
+        onAcidRainScoreSubmitted={() => setAcidRainScoreVersion(v => v + 1)}
+        onChangeNickname={handleChangeNickname}
+        typingScoreVersion={typingScoreVersion}
+        acidRainScoreVersion={acidRainScoreVersion}
+      />
       <ChatBox nickname={nickname} />
-      <Scoreboard nickname={nickname} scoreVersion={scoreVersion} />
     </div>
   )
 }
