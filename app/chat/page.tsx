@@ -106,7 +106,7 @@ export default function ChatPage() {
     return (
       <div className="nickname-screen">
         <div className="nickname-card">
-          <h1>소통 공간</h1>
+          <h1>타짜톡</h1>
           <p>닉네임을 입력하고 채팅에 참여하세요!</p>
           <form onSubmit={handleNicknameSubmit}>
             <input
@@ -145,7 +145,7 @@ export default function ChatPage() {
         <div className="chat-header">
           <div className="chat-header-left">
             <Link href="/" className="back-link">← 타자 게임</Link>
-            <h1>💬 소통 공간</h1>
+            <h1>💬 타짜톡</h1>
           </div>
           <div className="chat-user-badge">{nickname}</div>
         </div>

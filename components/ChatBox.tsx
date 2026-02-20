@@ -158,7 +158,7 @@ export default function ChatBox({ nickname }: Props) {
     <div className="chatbox">
       <div className="chatbox-header">
         <div className="chatbox-header-left">
-          <h2>💬 소통 공간</h2>
+          <h2>💬 타짜톡</h2>
           <span
             className={`chatbox-ws-dot chatbox-ws-dot--${wsStatus}`}
             title={
