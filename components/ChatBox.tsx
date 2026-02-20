@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase, type Message } from '@/lib/supabase'
+import type { AuthUser } from '@/lib/auth'
 
 const MAX_MESSAGE_LENGTH = 200
 
@@ -9,25 +10,20 @@ type WsStatus = 'connecting' | 'connected' | 'error'
 type ChatMessage = Message & { isOptimistic?: boolean }
 
 interface Props {
-  nickname: string
+  user: AuthUser | null
+  onNeedAuth: () => void
+  isOpen: boolean
+  onToggle: () => void
 }
 
 function sendBrowserNotification(title: string, body: string) {
   if (Notification.permission !== 'granted') return
   if (document.hasFocus()) return
-
-  const notif = new Notification(title, {
-    body,
-    icon: '/favicon.ico',
-    tag: 'chat-message',
-  })
-  notif.onclick = () => {
-    window.focus()
-    notif.close()
-  }
+  const notif = new Notification(title, { body, icon: '/favicon.ico', tag: 'chat-message' })
+  notif.onclick = () => { window.focus(); notif.close() }
 }
 
-export default function ChatBox({ nickname }: Props) {
+export default function ChatBox({ user, onNeedAuth, isOpen, onToggle }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [wsStatus, setWsStatus] = useState<WsStatus>('connecting')
   const [notifPerm, setNotifPerm] = useState<NotificationPermission>('default')
@@ -37,11 +33,10 @@ export default function ChatBox({ nickname }: Props) {
   const [error, setError] = useState<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const nickname = user?.nickname ?? ''
 
   useEffect(() => {
-    if ('Notification' in window) {
-      setNotifPerm(Notification.permission)
-    }
+    if ('Notification' in window) setNotifPerm(Notification.permission)
   }, [])
 
   const requestNotifPermission = async () => {
@@ -57,69 +52,49 @@ export default function ChatBox({ nickname }: Props) {
         .select('*')
         .order('created_at', { ascending: true })
         .limit(200)
-
-      if (error) {
-        setError('메시지를 불러오는데 실패했습니다.')
-      } else {
-        setMessages(data ?? [])
-      }
+      if (error) setError('메시지를 불러오는데 실패했습니다.')
+      else setMessages(data ?? [])
       setLoading(false)
     }
-
     fetchMessages()
 
     const channel = supabase
       .channel('messages-realtime')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        (payload) => {
-          const incoming = payload.new as Message
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === incoming.id)) return prev
-            const tempIdx = prev.findIndex(
-              (m) =>
-                m.isOptimistic &&
-                m.nickname === incoming.nickname &&
-                m.content === incoming.content
-            )
-            if (tempIdx !== -1) {
-              const next = [...prev]
-              next[tempIdx] = incoming
-              return next
-            }
-            return [...prev, incoming]
-          })
-
-          if (incoming.nickname !== nickname) {
-            sendBrowserNotification(
-              `💬 ${incoming.nickname}`,
-              incoming.content
-            )
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        const incoming = payload.new as Message
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === incoming.id)) return prev
+          const tempIdx = prev.findIndex(
+            (m) => m.isOptimistic && m.nickname === incoming.nickname && m.content === incoming.content
+          )
+          if (tempIdx !== -1) {
+            const next = [...prev]
+            next[tempIdx] = incoming
+            return next
           }
+          return [...prev, incoming]
+        })
+        if (incoming.nickname !== nickname) {
+          sendBrowserNotification(`💬 ${incoming.nickname}`, incoming.content)
         }
-      )
+      })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') setWsStatus('connected')
         else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setWsStatus('error')
         else setWsStatus('connecting')
       })
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
+    return () => { supabase.removeChannel(channel) }
   }, [nickname])
 
   useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight
-    }
+    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight
   }, [messages])
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
     const content = input.trim()
-    if (!content || sending) return
+    if (!content || sending || !user) return
 
     const tempId = `temp-${Date.now()}`
     const optimistic: ChatMessage = {
@@ -137,106 +112,120 @@ export default function ChatBox({ nickname }: Props) {
     inputRef.current?.focus()
 
     const { error } = await supabase.from('messages').insert({ nickname, content })
-
     if (error) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId))
       setError('전송 실패')
     }
-
     setSending(false)
   }
 
-  const notifButtonLabel =
-    notifPerm === 'granted' ? '🔔' :
-    notifPerm === 'denied'  ? '🔕' : '🔔'
-
+  const notifButtonLabel = notifPerm === 'granted' ? '🔔' : notifPerm === 'denied' ? '🔕' : '🔔'
   const notifButtonTitle =
     notifPerm === 'granted' ? '알림 켜짐' :
-    notifPerm === 'denied'  ? '알림이 브라우저에서 차단됨' : '알림 켜기'
+    notifPerm === 'denied' ? '알림이 브라우저에서 차단됨' : '알림 켜기'
+
+  if (!isOpen) {
+    return (
+      <div className="chatbox chatbox--collapsed" onClick={onToggle} title="타짜톡 펼치기">
+        <div className="chatbox-strip">
+          <span className="chatbox-strip-arrow">◀</span>
+          <span
+            className={`chatbox-ws-dot chatbox-ws-dot--${wsStatus}`}
+            title={wsStatus === 'connected' ? '실시간 연결됨' : wsStatus === 'error' ? '연결 오류' : '연결 중'}
+          />
+          <span className="chatbox-strip-label">💬 타짜톡</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="chatbox">
       <div className="chatbox-header">
         <div className="chatbox-header-left">
+          <button className="chatbox-collapse-btn" onClick={onToggle} title="타짜톡 접기">▶</button>
           <h2>💬 타짜톡</h2>
           <span
             className={`chatbox-ws-dot chatbox-ws-dot--${wsStatus}`}
-            title={
-              wsStatus === 'connected' ? '실시간 연결됨' :
-              wsStatus === 'error' ? '연결 오류' : '연결 중'
-            }
+            title={wsStatus === 'connected' ? '실시간 연결됨' : wsStatus === 'error' ? '연결 오류' : '연결 중'}
           />
         </div>
         <div className="chatbox-header-right">
-          {notifPerm !== 'denied' && (
-            <button
-              className={`chatbox-notif-btn ${notifPerm === 'granted' ? 'chatbox-notif-btn--on' : ''}`}
-              onClick={requestNotifPermission}
-              title={notifButtonTitle}
-              disabled={notifPerm === 'granted'}
-            >
-              {notifButtonLabel}
-            </button>
-          )}
-          <span className="chatbox-badge">{nickname}</span>
+          {user ? (
+            <>
+              {notifPerm !== 'denied' && (
+                <button
+                  className={`chatbox-notif-btn ${notifPerm === 'granted' ? 'chatbox-notif-btn--on' : ''}`}
+                  onClick={requestNotifPermission}
+                  title={notifButtonTitle}
+                  disabled={notifPerm === 'granted'}
+                >
+                  {notifButtonLabel}
+                </button>
+              )}
+              <span className="chatbox-badge">{nickname}</span>
+            </>
+          ) : null}
         </div>
       </div>
 
-      <div className="chatbox-list" ref={listRef}>
-        {loading && (
-          <div className="chatbox-skeleton">
-            {[false, true, false, false, true].map((isMe, i) => (
-              <div key={i} className={`chatbox-skeleton-msg ${isMe ? 'chatbox-skeleton-msg--me' : ''}`}>
-                <div className="chatbox-skeleton-nick" />
-                <div className="chatbox-skeleton-bubble" />
+      {!user ? (
+        <div className="chatbox-auth-gate">
+          <p>타짜톡을 이용하려면<br />로그인이 필요합니다.</p>
+          <button className="chatbox-send-btn" onClick={onNeedAuth}>로그인</button>
+        </div>
+      ) : (
+        <>
+          <div className="chatbox-list" ref={listRef}>
+            {loading && (
+              <div className="chatbox-skeleton">
+                {[false, true, false, false, true].map((isMe, i) => (
+                  <div key={i} className={`chatbox-skeleton-msg ${isMe ? 'chatbox-skeleton-msg--me' : ''}`}>
+                    <div className="chatbox-skeleton-nick" />
+                    <div className="chatbox-skeleton-bubble" />
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+            {!loading && messages.length === 0 && (
+              <div className="chatbox-status">첫 메시지를 남겨보세요!</div>
+            )}
+            {messages.map((msg) => {
+              const isMe = msg.nickname === nickname
+              return (
+                <div
+                  key={msg.id}
+                  className={`chatbox-msg ${isMe ? 'chatbox-msg--me' : 'chatbox-msg--other'} ${msg.isOptimistic ? 'chatbox-msg--optimistic' : ''}`}
+                >
+                  <span className="chatbox-msg-nick">{msg.nickname}</span>
+                  <div className="chatbox-bubble">{msg.content}</div>
+                  <span className="chatbox-msg-time">
+                    {new Date(msg.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              )
+            })}
           </div>
-        )}
-        {!loading && messages.length === 0 && (
-          <div className="chatbox-status">첫 메시지를 남겨보세요!</div>
-        )}
-        {messages.map((msg) => {
-          const isMe = msg.nickname === nickname
-          return (
-            <div
-              key={msg.id}
-              className={`chatbox-msg ${isMe ? 'chatbox-msg--me' : 'chatbox-msg--other'} ${msg.isOptimistic ? 'chatbox-msg--optimistic' : ''}`}
-            >
-              <span className="chatbox-msg-nick">{msg.nickname}</span>
-              <div className="chatbox-bubble">{msg.content}</div>
-              <span className="chatbox-msg-time">
-                {new Date(msg.created_at).toLocaleTimeString('ko-KR', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
-            </div>
-          )
-        })}
-      </div>
 
-      {error && <div className="chatbox-error">{error}</div>}
+          {error && <div className="chatbox-error">{error}</div>}
 
-      <form className="chatbox-form" onSubmit={handleSend}>
-        <input
-          ref={inputRef}
-          className="chatbox-input"
-          type="text"
-          placeholder="메시지 입력..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          maxLength={MAX_MESSAGE_LENGTH}
-          disabled={sending}
-        />
-        <button
-          className="chatbox-send-btn"
-          type="submit"
-          disabled={!input.trim() || sending}
-        >
-          전송
-        </button>
-      </form>
+          <form className="chatbox-form" onSubmit={handleSend}>
+            <input
+              ref={inputRef}
+              className="chatbox-input"
+              type="text"
+              placeholder="메시지 입력..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              maxLength={MAX_MESSAGE_LENGTH}
+              disabled={sending}
+            />
+            <button className="chatbox-send-btn" type="submit" disabled={!input.trim() || sending}>
+              전송
+            </button>
+          </form>
+        </>
+      )}
     </div>
   )
 }

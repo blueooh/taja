@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { type Theme, THEME_LABELS, SENTENCES_MAP } from '@/lib/sentences'
+import type { AuthUser } from '@/lib/auth'
 
 interface GameResult {
   time: number
@@ -11,27 +12,28 @@ interface GameResult {
 }
 
 interface Props {
-  nickname: string
+  user: AuthUser | null
   onScoreSubmitted: () => void
-  onChangeNickname: () => void
+  onLogout: () => void
+  onNeedAuth: () => void
 }
 
 type SubmitStatus = 'idle' | 'submitting' | 'success' | 'error'
 
-const TypingGame: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNickname }) => {
+const TypingGame: React.FC<Props> = ({ user, onScoreSubmitted, onLogout, onNeedAuth }) => {
   const [selectedTheme, setSelectedTheme] = useState<Theme>('park')
   const [currentSentence, setCurrentSentence] = useState('')
   const [userInput, setUserInput] = useState('')
   const [isGameStarted, setIsGameStarted] = useState(false)
   const [isGameFinished, setIsGameFinished] = useState(false)
   const [startTime, setStartTime] = useState(0)
-  const [endTime, setEndTime] = useState(0)
   const [results, setResults] = useState<GameResult[]>([])
   const [errors, setErrors] = useState(0)
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('idle')
   const inputRef = useRef<HTMLInputElement>(null)
 
   const startGame = () => {
+    if (!user) { onNeedAuth(); return }
     const sentences = SENTENCES_MAP[selectedTheme]
     const randomIndex = Math.floor(Math.random() * sentences.length)
     setCurrentSentence(sentences[randomIndex])
@@ -57,12 +59,13 @@ const TypingGame: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNickn
   }
 
   const submitScore = async (wpm: number, accuracy: number, timeInSeconds: number) => {
+    if (!user) return
     setSubmitStatus('submitting')
     try {
       const res = await fetch('/api/scores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname, wpm, accuracy, time: timeInSeconds, gameType: 'typing' }),
+        body: JSON.stringify({ nickname: user.nickname, wpm, accuracy, time: timeInSeconds, gameType: 'typing' }),
       })
       const json = await res.json()
       if (json.success) {
@@ -78,7 +81,6 @@ const TypingGame: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNickn
 
   const finishGame = (input: string) => {
     const now = Date.now()
-    setEndTime(now)
     setIsGameFinished(true)
     setIsGameStarted(false)
 
@@ -86,8 +88,7 @@ const TypingGame: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNickn
     const accuracy = calculateAccuracy(input, currentSentence)
     const wpm = calculateWPM(timeInSeconds)
 
-    const newResult: GameResult = { time: timeInSeconds, accuracy, wpm, date: new Date() }
-    setResults(prev => [newResult, ...prev])
+    setResults(prev => [{ time: timeInSeconds, accuracy, wpm, date: new Date() }, ...prev])
     submitScore(wpm, accuracy, timeInSeconds)
   }
 
@@ -101,9 +102,7 @@ const TypingGame: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNickn
     }
     setErrors(errorCount)
 
-    if (value === currentSentence) {
-      finishGame(value)
-    }
+    if (value === currentSentence) finishGame(value)
   }
 
   const resetGame = () => {
@@ -111,7 +110,6 @@ const TypingGame: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNickn
     setIsGameFinished(false)
     setUserInput('')
     setStartTime(0)
-    setEndTime(0)
     setErrors(0)
     setSubmitStatus('idle')
   }
@@ -128,31 +126,31 @@ const TypingGame: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNickn
   return (
     <div className="typing-game">
       <h2>스피드</h2>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-        <div className="player-badge">👤 {nickname}</div>
-        <button
-          onClick={onChangeNickname}
-          style={{ fontSize: '0.78rem', background: 'none', border: '1px solid #ddd', borderRadius: '12px', padding: '3px 10px', cursor: 'pointer', color: '#888' }}
-        >
-          변경
-        </button>
-      </div>
 
       {!isGameStarted && !isGameFinished && (
         <div className="start-screen">
-          <div className="theme-selector">
-            {(Object.keys(THEME_LABELS) as Theme[]).map((theme) => (
-              <button
-                key={theme}
-                onClick={() => setSelectedTheme(theme)}
-                className={`theme-btn${selectedTheme === theme ? ' active' : ''}`}
-              >
-                {THEME_LABELS[theme]}
-              </button>
-            ))}
-          </div>
-          <p>아래 버튼을 클릭하여 게임을 시작하세요!</p>
-          <button onClick={startGame} className="start-button">게임 시작</button>
+          {!user ? (
+            <>
+              <p style={{ color: '#888' }}>게임을 시작하려면 로그인이 필요합니다.</p>
+              <button onClick={onNeedAuth} className="start-button">로그인하고 시작</button>
+            </>
+          ) : (
+            <>
+              <div className="theme-selector">
+                {(Object.keys(THEME_LABELS) as Theme[]).map((theme) => (
+                  <button
+                    key={theme}
+                    onClick={() => setSelectedTheme(theme)}
+                    className={`theme-btn${selectedTheme === theme ? ' active' : ''}`}
+                  >
+                    {THEME_LABELS[theme]}
+                  </button>
+                ))}
+              </div>
+              <p>아래 버튼을 클릭하여 게임을 시작하세요!</p>
+              <button onClick={startGame} className="start-button">게임 시작</button>
+            </>
+          )}
         </div>
       )}
 

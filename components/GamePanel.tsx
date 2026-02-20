@@ -3,21 +3,24 @@
 import TypingGame from '@/components/TypingGame'
 import AcidRain from '@/components/AcidRain'
 import Scoreboard from '@/components/Scoreboard'
+import type { AuthUser } from '@/lib/auth'
 
 interface Props {
-  nickname: string
+  user: AuthUser | null
   onTypingScoreSubmitted: () => void
   onAcidRainScoreSubmitted: () => void
-  onChangeNickname: () => void
+  onLogout: () => void
+  onNeedAuth: () => void
   typingScoreVersion: number
   acidRainScoreVersion: number
 }
 
 export default function GamePanel({
-  nickname,
+  user,
   onTypingScoreSubmitted,
   onAcidRainScoreSubmitted,
-  onChangeNickname,
+  onLogout,
+  onNeedAuth,
   typingScoreVersion,
   acidRainScoreVersion,
 }: Props) {
@@ -25,19 +28,29 @@ export default function GamePanel({
     <div className="games-column">
       <div className="game-panel">
         <TypingGame
-          nickname={nickname}
+          user={user}
           onScoreSubmitted={onTypingScoreSubmitted}
-          onChangeNickname={onChangeNickname}
+          onLogout={onLogout}
+          onNeedAuth={onNeedAuth}
         />
-        <Scoreboard nickname={nickname} scoreVersion={typingScoreVersion} gameType="typing" />
+        <Scoreboard
+          nickname={user?.nickname ?? ''}
+          scoreVersion={typingScoreVersion}
+          gameType="typing"
+        />
       </div>
       <div className="game-panel">
         <AcidRain
-          nickname={nickname}
+          user={user}
           onScoreSubmitted={onAcidRainScoreSubmitted}
-          onChangeNickname={onChangeNickname}
+          onLogout={onLogout}
+          onNeedAuth={onNeedAuth}
         />
-        <Scoreboard nickname={nickname} scoreVersion={acidRainScoreVersion} gameType="acidrain" />
+        <Scoreboard
+          nickname={user?.nickname ?? ''}
+          scoreVersion={acidRainScoreVersion}
+          gameType="acidrain"
+        />
       </div>
     </div>
   )

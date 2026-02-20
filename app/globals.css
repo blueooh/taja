@@ -11,6 +11,162 @@ body {
   color: #333;
 }
 
+/* ===== 상단 바 ===== */
+.page-wrapper {
+  min-height: 100vh;
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 10px 24px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(6px);
+  position: relative;
+  z-index: 50;
+}
+
+.top-bar-user-wrap {
+  position: relative;
+}
+
+.top-bar-user {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: white;
+  opacity: 0.9;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.top-bar-user:hover {
+  background: rgba(255, 255, 255, 0.15);
+  opacity: 1;
+}
+
+.top-bar-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.16);
+  min-width: 160px;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.top-bar-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 0.88rem;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #333;
+  transition: background 0.15s;
+}
+
+.top-bar-dropdown-item:hover {
+  background: #f5f5f5;
+}
+
+/* ===== 모달 ===== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.modal-card {
+  background: white;
+  border-radius: 14px;
+  padding: 28px 28px 24px;
+  width: 320px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.modal-cancel-btn {
+  flex: 1;
+  padding: 10px;
+  font-size: 0.9rem;
+  background: #f0f0f0;
+  color: #555;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.modal-cancel-btn:hover {
+  background: #e0e0e0;
+}
+
+.modal-submit-btn {
+  flex: 1;
+  padding: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.modal-submit-btn:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.modal-submit-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.top-bar-logout {
+  font-size: 0.82rem;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.top-bar-logout:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
 /* ===== 메인 레이아웃 ===== */
 .main-layout {
   max-width: 1400px;
@@ -20,6 +176,11 @@ body {
   grid-template-columns: 2fr 1fr;
   gap: 24px;
   align-items: start;
+  transition: grid-template-columns 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.main-layout--chat-collapsed {
+  grid-template-columns: 1fr 40px;
 }
 
 @media (max-width: 900px) {
@@ -530,6 +691,63 @@ body {
   overflow: hidden;
 }
 
+.chatbox--collapsed {
+  cursor: pointer;
+  padding: 0;
+  overflow: hidden;
+}
+
+.chatbox--collapsed:hover {
+  background: rgba(102, 126, 234, 0.1);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+}
+
+.chatbox-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
+  padding: 16px 0 20px;
+  gap: 12px;
+}
+
+.chatbox-strip-arrow {
+  font-size: 0.9rem;
+  color: #667eea;
+  flex-shrink: 0;
+}
+
+.chatbox-strip-label {
+  writing-mode: vertical-rl;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #667eea;
+  letter-spacing: 2px;
+  user-select: none;
+  margin-top: 4px;
+}
+
+.chatbox-collapse-btn {
+  background: #f0f0f0;
+  border: none;
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #667eea;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.chatbox-collapse-btn:hover {
+  background: #e0e0e0;
+}
+
 .chatbox-header {
   display: flex;
   align-items: center;
@@ -1007,6 +1225,153 @@ body {
   .chat-message {
     max-width: 85%;
   }
+}
+
+/* ===== 로그인 / 회원가입 ===== */
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-card {
+  background: white;
+  border-radius: 16px;
+  padding: 48px 40px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+}
+
+.auth-title {
+  font-size: 2rem;
+  margin-bottom: 4px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.auth-subtitle {
+  font-size: 1.2rem;
+  color: #555;
+  margin-bottom: 28px;
+  font-weight: 600;
+}
+
+.auth-field {
+  margin-bottom: 4px;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 1rem;
+  border: 2px solid #e1e5e9;
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 12px;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.auth-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+.auth-field-hint {
+  font-size: 0.78rem;
+  color: #e67e22;
+  text-align: left;
+  margin: -8px 0 10px 2px;
+}
+
+.auth-error {
+  font-size: 0.85rem;
+  color: #dc3545;
+  background: #f8d7da;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.auth-submit-btn {
+  width: 100%;
+  padding: 13px;
+  font-size: 1rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-bottom: 16px;
+}
+
+.auth-submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.auth-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-link-text {
+  font-size: 0.88rem;
+  color: #888;
+}
+
+.auth-link {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+/* 게임 내 로그인 버튼 */
+.auth-inline-btn {
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.auth-inline-btn:hover {
+  opacity: 0.85;
+}
+
+/* 타짜톡 로그인 게이트 */
+.chatbox-auth-gate {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px;
+  text-align: center;
+}
+
+.chatbox-auth-gate p {
+  color: #888;
+  font-size: 0.9rem;
+  line-height: 1.6;
 }
 
 /* ===== 산성비 게임 ===== */

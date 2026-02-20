@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useReducer } from 'react'
+import type { AuthUser } from '@/lib/auth'
 
 interface FallingWord {
   id: number
@@ -11,9 +12,10 @@ interface FallingWord {
 }
 
 interface Props {
-  nickname: string
+  user: AuthUser | null
   onScoreSubmitted: () => void
-  onChangeNickname: () => void
+  onLogout: () => void
+  onNeedAuth: () => void
 }
 
 type GamePhase = 'idle' | 'playing' | 'gameover'
@@ -46,7 +48,7 @@ const BASE_SPEED = 55
 const SPEED_PER_LEVEL = 18
 const LEVEL_UP_EVERY = 10
 
-const AcidRain: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNickname }) => {
+const AcidRain: React.FC<Props> = ({ user, onScoreSubmitted, onLogout, onNeedAuth }) => {
   const [phase, setPhase] = useState<GamePhase>('idle')
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('idle')
   const [, forceRender] = useReducer(n => n + 1, 0)
@@ -73,10 +75,10 @@ const AcidRain: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNicknam
   })
 
   const inputRef = useRef<HTMLInputElement>(null)
-  const nicknameRef = useRef(nickname)
+  const userRef = useRef(user)
   const cbRef = useRef(onScoreSubmitted)
 
-  useEffect(() => { nicknameRef.current = nickname }, [nickname])
+  useEffect(() => { userRef.current = user }, [user])
   useEffect(() => { cbRef.current = onScoreSubmitted }, [onScoreSubmitted])
 
   useEffect(() => {
@@ -110,7 +112,7 @@ const AcidRain: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNicknam
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        nickname: nicknameRef.current,
+        nickname: userRef.current?.nickname ?? '',
         wpm: Math.max(1, state.score),
         accuracy: Math.max(1, accuracy),
         time: elapsed,
@@ -172,6 +174,7 @@ const AcidRain: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNicknam
   }
 
   function startGame() {
+    if (!userRef.current) { onNeedAuth(); return }
     cancelAnimationFrame(gs.current.animFrame)
     const state = gs.current
     state.words = []
@@ -226,23 +229,23 @@ const AcidRain: React.FC<Props> = ({ nickname, onScoreSubmitted, onChangeNicknam
   return (
     <div className="acid-rain-game">
       <h2>산성비</h2>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-        <div className="player-badge">👤 {nickname}</div>
-        <button
-          onClick={onChangeNickname}
-          style={{ fontSize: '0.78rem', background: 'none', border: '1px solid #ddd', borderRadius: '12px', padding: '3px 10px', cursor: 'pointer', color: '#888' }}
-        >
-          변경
-        </button>
-      </div>
 
       {phase === 'idle' && (
         <div className="start-screen">
-          <p>하늘에서 단어가 떨어집니다.<br />땅에 닿기 전에 단어를 입력하세요!</p>
-          <div style={{ marginBottom: '16px', fontSize: '0.85rem', color: '#888' }}>
-            ❤️ 생명 3개 · {LEVEL_UP_EVERY}단어마다 레벨업
-          </div>
-          <button onClick={startGame} className="start-button">게임 시작</button>
+          {!user ? (
+            <>
+              <p style={{ color: '#888' }}>게임을 시작하려면 로그인이 필요합니다.</p>
+              <button onClick={onNeedAuth} className="start-button">로그인하고 시작</button>
+            </>
+          ) : (
+            <>
+              <p>하늘에서 단어가 떨어집니다.<br />땅에 닿기 전에 단어를 입력하세요!</p>
+              <div style={{ marginBottom: '16px', fontSize: '0.85rem', color: '#888' }}>
+                ❤️ 생명 3개 · {LEVEL_UP_EVERY}단어마다 레벨업
+              </div>
+              <button onClick={startGame} className="start-button">게임 시작</button>
+            </>
+          )}
         </div>
       )}
 
