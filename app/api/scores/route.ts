@@ -38,23 +38,42 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: '유효하지 않은 게임 타입입니다.' }, { status: 400 })
     }
 
+    // 신규 키에서 조회
     const raw = await redis.zrevrange(scoresKey(gameType), 0, TOP_COUNT - 1, 'WITHSCORES')
-    if (raw.length === 0) {
+    const ids: string[] = []
+    const redisScores: Record<string, number> = {}
+    for (let i = 0; i < raw.length; i += 2) {
+      ids.push(raw[i])
+      redisScores[raw[i]] = Number(raw[i + 1])
+    }
+
+    // typing인 경우 구버전 키(taja:scores)도 조회 (하위 호환)
+    const legacyIds: string[] = []
+    const legacyScores: Record<string, number> = {}
+    if (gameType === 'typing') {
+      const legacyRaw = await redis.zrevrange('taja:scores', 0, TOP_COUNT - 1, 'WITHSCORES')
+      for (let i = 0; i < legacyRaw.length; i += 2) {
+        legacyIds.push(legacyRaw[i])
+        legacyScores[legacyRaw[i]] = Number(legacyRaw[i + 1])
+      }
+    }
+
+    if (ids.length === 0 && legacyIds.length === 0) {
       return NextResponse.json({ success: true, data: [] })
     }
 
-    const ids: string[] = []
-    for (let i = 0; i < raw.length; i += 2) ids.push(raw[i])
-
     const pipeline = redis.pipeline()
     ids.forEach(id => pipeline.hgetall(entryKey(gameType, id)))
+    legacyIds.forEach(id => pipeline.hgetall(`taja:entry:${id}`))
     const results = await pipeline.exec()
 
-    const entries: ScoreEntry[] = []
-    results?.forEach((result, index) => {
+    type ScoredEntry = ScoreEntry & { _score: number }
+    const all: ScoredEntry[] = []
+
+    results?.slice(0, ids.length).forEach((result, index) => {
       const detail = result[1] as Record<string, string> | null
       if (detail?.nickname) {
-        entries.push({
+        all.push({
           id: ids[index],
           gameType,
           nickname: detail.nickname,
@@ -62,9 +81,29 @@ export async function GET(req: NextRequest) {
           accuracy: Number(detail.accuracy),
           time: Number(detail.time),
           date: detail.date,
+          _score: redisScores[ids[index]],
         })
       }
     })
+
+    results?.slice(ids.length).forEach((result, index) => {
+      const detail = result[1] as Record<string, string> | null
+      if (detail?.nickname) {
+        all.push({
+          id: legacyIds[index],
+          gameType: 'typing',
+          nickname: detail.nickname,
+          wpm: Number(detail.wpm),
+          accuracy: Number(detail.accuracy),
+          time: Number(detail.time),
+          date: detail.date,
+          _score: legacyScores[legacyIds[index]],
+        })
+      }
+    })
+
+    all.sort((a, b) => b._score - a._score)
+    const entries: ScoreEntry[] = all.slice(0, TOP_COUNT).map(({ _score, ...e }) => e)
 
     return NextResponse.json({ success: true, data: entries })
   } catch {
