@@ -183,7 +183,16 @@ export default function ChatBox({ nickname }: Props) {
       </div>
 
       <div className="chatbox-list" ref={listRef}>
-        {loading && <div className="chatbox-status">불러오는 중...</div>}
+        {loading && (
+          <div className="chatbox-skeleton">
+            {[false, true, false, false, true].map((isMe, i) => (
+              <div key={i} className={`chatbox-skeleton-msg ${isMe ? 'chatbox-skeleton-msg--me' : ''}`}>
+                <div className="chatbox-skeleton-nick" />
+                <div className="chatbox-skeleton-bubble" />
+              </div>
+            ))}
+          </div>
+        )}
         {!loading && messages.length === 0 && (
           <div className="chatbox-status">첫 메시지를 남겨보세요!</div>
         )}

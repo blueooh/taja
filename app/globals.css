@@ -113,6 +113,8 @@ body {
   border-radius: 16px;
   padding: 28px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  height: 520px;
+  overflow-y: auto;
 }
 
 .typing-game h2 {
@@ -347,6 +349,8 @@ body {
   border-radius: 16px;
   padding: 28px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  height: 520px;
+  overflow-y: auto;
 }
 
 .scoreboard-header {
@@ -441,6 +445,41 @@ body {
   color: #aaa;
   font-size: 0.95rem;
 }
+
+/* ===== 스켈레톤 공통 ===== */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton-cell {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  height: 14px;
+}
+
+/* 스코어보드 스켈레톤 */
+.skeleton-table {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+}
+
+.skeleton-rank  { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; }
+.skeleton-nick  { flex: 2; }
+.skeleton-wpm   { flex: 1; }
+.skeleton-acc   { flex: 1; }
+.skeleton-date  { flex: 2; }
 
 .loading-scores {
   text-align: center;
@@ -567,6 +606,56 @@ body {
   color: #bbb;
   font-size: 0.88rem;
   margin: auto;
+}
+
+/* 타짜톡 스켈레톤 */
+.chatbox-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 0;
+  width: 100%;
+}
+
+.chatbox-skeleton-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 65%;
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.chatbox-skeleton-msg--me {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.chatbox-skeleton-nick {
+  width: 56px;
+  height: 10px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+.chatbox-skeleton-bubble {
+  height: 36px;
+  width: 100%;
+  min-width: 120px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+.chatbox-skeleton-msg--me .chatbox-skeleton-bubble {
+  border-bottom-right-radius: 3px;
+}
+
+.chatbox-skeleton-msg:not(.chatbox-skeleton-msg--me) .chatbox-skeleton-bubble {
+  border-bottom-left-radius: 3px;
 }
 
 .chatbox-msg {

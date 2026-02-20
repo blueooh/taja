@@ -57,7 +57,19 @@ const Scoreboard: React.FC<Props> = ({ nickname, scoreVersion }) => {
         </button>
       </div>
 
-      {loading && <div className="loading-scores">불러오는 중...</div>}
+      {loading && (
+        <div className="skeleton-table">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="skeleton-row">
+              <div className="skeleton-cell skeleton-rank" />
+              <div className="skeleton-cell skeleton-nick" />
+              <div className="skeleton-cell skeleton-wpm" />
+              <div className="skeleton-cell skeleton-acc" />
+              <div className="skeleton-cell skeleton-date" />
+            </div>
+          ))}
+        </div>
+      )}
 
       {error && !loading && <div className="no-scores">{error}</div>}
 

@@ -9,15 +9,13 @@ const NICKNAME_REGEX = /^[a-zA-Z0-9가-힣_]{1,20}$/
 const STORAGE_KEY = 'taja:nickname'
 
 export default function Home() {
-  const [nickname, setNickname] = useState<string | null>(null)
+  const [nickname, setNickname] = useState<string | null | undefined>(undefined)
   const [inputValue, setInputValue] = useState('')
   const [scoreVersion, setScoreVersion] = useState(0)
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved && NICKNAME_REGEX.test(saved)) {
-      setNickname(saved)
-    }
+    setNickname(saved && NICKNAME_REGEX.test(saved) ? saved : null)
   }, [])
 
   const isValidNickname = NICKNAME_REGEX.test(inputValue.trim())
@@ -40,6 +38,8 @@ export default function Home() {
   const handleScoreSubmitted = () => {
     setScoreVersion(v => v + 1)
   }
+
+  if (nickname === undefined) return null
 
   if (!nickname) {
     return (
