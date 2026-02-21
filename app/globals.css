@@ -84,6 +84,18 @@ body {
   background: #f5f5f5;
 }
 
+.top-bar-dropdown-item--danger {
+  color: #dc3545;
+}
+
+.top-bar-dropdown-item--danger:hover {
+  background: #fff5f5;
+}
+
+.modal-submit-btn--danger {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
 /* ===== 모달 ===== */
 .modal-backdrop {
   position: fixed;

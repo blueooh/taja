@@ -23,6 +23,11 @@ export default function Home() {
   const [nicknameError, setNicknameError] = useState('')
   const [nicknameLoading, setNicknameLoading] = useState(false)
 
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false)
+  const [withdrawPassword, setWithdrawPassword] = useState('')
+  const [withdrawError, setWithdrawError] = useState('')
+  const [withdrawLoading, setWithdrawLoading] = useState(false)
+
   useEffect(() => {
     fetch('/api/auth/me')
       .then(r => r.json())
@@ -83,6 +88,42 @@ export default function Home() {
     }
   }
 
+  const openWithdrawModal = () => {
+    setWithdrawPassword('')
+    setWithdrawError('')
+    setShowWithdrawModal(true)
+    setDropdownOpen(false)
+  }
+
+  const handleWithdraw = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!withdrawPassword) {
+      setWithdrawError('비밀번호를 입력해주세요.')
+      return
+    }
+    setWithdrawLoading(true)
+    setWithdrawError('')
+    try {
+      const res = await fetch('/api/auth/withdraw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: withdrawPassword }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setUser(null)
+        setShowWithdrawModal(false)
+        router.push('/login')
+      } else {
+        setWithdrawError(json.error ?? '탈퇴에 실패했습니다.')
+      }
+    } catch {
+      setWithdrawError('요청에 실패했습니다.')
+    } finally {
+      setWithdrawLoading(false)
+    }
+  }
+
   const goLogin = () => router.push('/login')
 
   if (user === undefined) return null
@@ -103,6 +144,9 @@ export default function Home() {
                 <div className="top-bar-dropdown">
                   <button className="top-bar-dropdown-item" onClick={openNicknameModal}>
                     ✏️ 닉네임 변경
+                  </button>
+                  <button className="top-bar-dropdown-item top-bar-dropdown-item--danger" onClick={openWithdrawModal}>
+                    🗑️ 회원탈퇴
                   </button>
                 </div>
               )}
@@ -143,6 +187,45 @@ export default function Home() {
                   disabled={nicknameLoading || !newNickname.trim()}
                 >
                   {nicknameLoading ? '변경 중...' : '변경'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showWithdrawModal && (
+        <div className="modal-backdrop" onClick={() => setShowWithdrawModal(false)}>
+          <div className="modal-card" onClick={e => e.stopPropagation()}>
+            <h3 className="modal-title">회원탈퇴</h3>
+            <p style={{ fontSize: '0.88rem', color: '#666', marginBottom: 16, lineHeight: 1.6 }}>
+              탈퇴하면 계정 정보가 <strong>즉시 삭제</strong>되며 복구할 수 없습니다.<br />
+              비밀번호를 입력해 확인해주세요.
+            </p>
+            <form onSubmit={handleWithdraw}>
+              <input
+                className="auth-input"
+                type="password"
+                value={withdrawPassword}
+                onChange={e => setWithdrawPassword(e.target.value)}
+                placeholder="비밀번호"
+                autoFocus
+              />
+              {withdrawError && <p className="auth-error">{withdrawError}</p>}
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="modal-cancel-btn"
+                  onClick={() => setShowWithdrawModal(false)}
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="modal-submit-btn modal-submit-btn--danger"
+                  disabled={withdrawLoading || !withdrawPassword}
+                >
+                  {withdrawLoading ? '처리 중...' : '탈퇴하기'}
                 </button>
               </div>
             </form>
