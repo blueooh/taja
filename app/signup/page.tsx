@@ -13,7 +13,7 @@ export default function SignupPage() {
   const [nickname, setNickname] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [oauthLoading, setOauthLoading] = useState<string | null>(null)
+  const [oauthLoading, setOauthLoading] = useState<'google' | 'kakao' | null>(null)
 
   const isValidUsername = USERNAME_REGEX.test(username)
   const isValidPassword = password.length >= PASSWORD_MIN
@@ -44,7 +44,7 @@ export default function SignupPage() {
     }
   }
 
-  const handleOAuth = async (provider: 'google' | 'apple') => {
+  const handleOAuth = async (provider: 'google' | 'kakao') => {
     setOauthLoading(provider)
     await supabase.auth.signInWithOAuth({
       provider,
@@ -69,12 +69,12 @@ export default function SignupPage() {
             {oauthLoading === 'google' ? '이동 중...' : 'Google로 시작하기'}
           </button>
           <button
-            className="oauth-btn oauth-btn--apple"
-            onClick={() => handleOAuth('apple')}
+            className="oauth-btn oauth-btn--kakao"
+            onClick={() => handleOAuth('kakao')}
             disabled={!!oauthLoading}
           >
-            <AppleIcon />
-            {oauthLoading === 'apple' ? '이동 중...' : 'Apple로 시작하기'}
+            <KakaoIcon />
+            {oauthLoading === 'kakao' ? '이동 중...' : '카카오로 시작하기'}
           </button>
         </div>
 
@@ -145,6 +145,14 @@ export default function SignupPage() {
   )
 }
 
+function KakaoIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+      <path d="M9 1.5C4.86 1.5 1.5 4.08 1.5 7.26c0 2.04 1.35 3.84 3.39 4.86l-.87 3.21c-.06.21.18.39.36.27L8.1 13.2c.3.03.6.06.9.06 4.14 0 7.5-2.58 7.5-5.76S13.14 1.5 9 1.5z" fill="#3C1E1E"/>
+    </svg>
+  )
+}
+
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
@@ -156,10 +164,3 @@ function GoogleIcon() {
   )
 }
 
-function AppleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12.94 0c.076 1.415-.387 2.78-1.265 3.774-.878.994-2.17 1.594-3.51 1.54C8.06 3.905 8.571 2.55 9.44 1.578 10.31.607 11.594.02 12.94 0zM17.28 13.02c-.47 1.04-1.01 1.98-1.66 2.83-.87 1.16-1.77 2.32-3.07 2.33-1.29.01-1.7-.8-3.17-.79-1.47.01-1.91.82-3.21.81-1.3-.01-2.14-1.13-3.02-2.3-1.23-1.65-2.2-4.22-2.2-6.69 0-3.72 2.45-5.69 4.86-5.72 1.27-.02 2.47.83 3.26.83.78 0 2.25-.97 3.79-.83.65.03 2.46.26 3.62 1.98-.09.06-2.16 1.24-2.14 3.7.03 2.94 2.61 3.92 2.64 3.93l-.03.03z" fill="currentColor"/>
-    </svg>
-  )
-}
