@@ -12,7 +12,17 @@ export async function GET(req: NextRequest) {
   if (!user) {
     return NextResponse.json({ success: false }, { status: 401 })
   }
-  return NextResponse.json({ success: true, data: user })
+
+  const { data: dbUser } = await supabaseAdmin
+    .from('users')
+    .select('supabase_auth_id')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  return NextResponse.json({
+    success: true,
+    data: { ...user, isSocial: !!dbUser?.supabase_auth_id },
+  })
 }
 
 export async function PATCH(req: NextRequest) {
