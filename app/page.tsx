@@ -89,26 +89,30 @@ export default function Home() {
 
   return (
     <div className="page-wrapper">
-      {user && (
-        <div className="top-bar">
-          <div className="top-bar-user-wrap" ref={dropdownRef}>
-            <button
-              className="top-bar-user"
-              onClick={() => setDropdownOpen(v => !v)}
-            >
-              👤 {user.nickname} ▾
-            </button>
-            {dropdownOpen && (
-              <div className="top-bar-dropdown">
-                <button className="top-bar-dropdown-item" onClick={openNicknameModal}>
-                  ✏️ 닉네임 변경
-                </button>
-              </div>
-            )}
-          </div>
-          <button className="top-bar-logout" onClick={handleLogout}>로그아웃</button>
-        </div>
-      )}
+      <div className="top-bar">
+        {user ? (
+          <>
+            <div className="top-bar-user-wrap" ref={dropdownRef}>
+              <button
+                className="top-bar-user"
+                onClick={() => setDropdownOpen(v => !v)}
+              >
+                👤 {user.nickname} ▾
+              </button>
+              {dropdownOpen && (
+                <div className="top-bar-dropdown">
+                  <button className="top-bar-dropdown-item" onClick={openNicknameModal}>
+                    ✏️ 닉네임 변경
+                  </button>
+                </div>
+              )}
+            </div>
+            <button className="top-bar-logout" onClick={handleLogout}>로그아웃</button>
+          </>
+        ) : (
+          <button className="top-bar-logout" onClick={goLogin}>로그인</button>
+        )}
+      </div>
 
       {showNicknameModal && (
         <div className="modal-backdrop" onClick={() => setShowNicknameModal(false)}>
