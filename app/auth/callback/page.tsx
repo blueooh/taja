@@ -10,7 +10,6 @@ function CallbackInner() {
   const [message, setMessage] = useState('로그인 처리 중...')
 
   useEffect(() => {
-    const code = searchParams.get('code')
     const error = searchParams.get('error')
 
     if (error) {
@@ -19,27 +18,16 @@ function CallbackInner() {
       return
     }
 
-    if (!code) {
-      router.replace('/login')
-      return
-    }
+    let handled = false
 
-    const run = async () => {
-      // PKCE 코드를 Supabase 세션으로 교환
-      const { data: { session }, error: exchangeErr } =
-        await supabase.auth.exchangeCodeForSession(code)
+    const handleSession = async (accessToken: string) => {
+      if (handled) return
+      handled = true
 
-      if (exchangeErr || !session) {
-        setMessage('인증에 실패했습니다. 다시 시도해주세요.')
-        setTimeout(() => router.replace('/login'), 2000)
-        return
-      }
-
-      // Supabase 세션 → 우리 커스텀 Redis 세션으로 교환
       const res = await fetch('/api/auth/supabase-callback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: session.access_token }),
+        body: JSON.stringify({ access_token: accessToken }),
       })
       const json = await res.json()
 
@@ -51,11 +39,37 @@ function CallbackInner() {
       }
     }
 
-    run().catch(() => {
-      setMessage('오류가 발생했습니다.')
-      setTimeout(() => router.replace('/login'), 2000)
+    // detectSessionInUrl: true (default) auto-exchanges the PKCE code.
+    // Listen for the resulting SIGNED_IN event.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
+          subscription.unsubscribe()
+          await handleSession(session.access_token)
+        }
+      }
+    )
+
+    // Also check immediately in case auto-exchange already completed
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        subscription.unsubscribe()
+        handleSession(session.access_token)
+      }
     })
-  }, [searchParams, router])
+
+    const timeout = setTimeout(() => {
+      if (!handled) {
+        setMessage('인증 시간이 초과되었습니다.')
+        setTimeout(() => router.replace('/login'), 2000)
+      }
+    }, 10000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timeout)
+    }
+  }, [router, searchParams])
 
   return (
     <div style={{
