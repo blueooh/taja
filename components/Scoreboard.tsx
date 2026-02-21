@@ -65,7 +65,6 @@ const Scoreboard: React.FC<Props> = ({ nickname, scoreVersion, gameType }) => {
               <div className="skeleton-cell skeleton-rank" />
               <div className="skeleton-cell skeleton-nick" />
               <div className="skeleton-cell skeleton-wpm" />
-              <div className="skeleton-cell skeleton-acc" />
               <div className="skeleton-cell skeleton-date" />
             </div>
           ))}
@@ -85,7 +84,6 @@ const Scoreboard: React.FC<Props> = ({ nickname, scoreVersion, gameType }) => {
               <th>순위</th>
               <th>닉네임</th>
               <th>{gameType === 'acidrain' ? '점수' : 'WPM'}</th>
-              <th>정확도</th>
               <th>날짜</th>
             </tr>
           </thead>
@@ -105,7 +103,6 @@ const Scoreboard: React.FC<Props> = ({ nickname, scoreVersion, gameType }) => {
                   </td>
                   <td>{entry.nickname}{isCurrentPlayer && ' ★'}</td>
                   <td><span className="wpm-value">{entry.wpm}</span></td>
-                  <td>{entry.accuracy}%</td>
                   <td>{formatDate(entry.date)}</td>
                 </tr>
               )
