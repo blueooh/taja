@@ -97,7 +97,7 @@ export default function Home() {
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!withdrawPassword) {
+    if (!user?.isSocial && !withdrawPassword) {
       setWithdrawError('비밀번호를 입력해주세요.')
       return
     }

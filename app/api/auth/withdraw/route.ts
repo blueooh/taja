@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: '계정을 찾을 수 없습니다.' }, { status: 404 })
     }
 
-    // supabase_auth_id가 있으면 소셜 계정 → 비밀번호 검증 스킵
-    const isSocialAccount = !!user.supabase_auth_id
+    // supabase_auth_id가 있거나 password_hash가 없으면 소셜 계정
+    const isSocialAccount = !!user.supabase_auth_id || !user.password_hash
 
     if (!isSocialAccount) {
       if (!password) {
