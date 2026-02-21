@@ -2033,3 +2033,211 @@ body {
     flex-direction: column;
   }
 }
+
+/* ===== 고스톱 게임 ===== */
+.gostop-game {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px;
+  overflow-y: auto;
+  gap: 8px;
+}
+
+.gostop-game h2 {
+  font-size: 1.3rem;
+  color: #333;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 10px;
+  flex-shrink: 0;
+}
+
+/* 전체 레이아웃: 상대 / 필드 / 나 / 컨트롤 */
+.gostop-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 플레이어 영역 */
+.gostop-player-area {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gostop-player-area--opp {
+  border-top: 3px solid #ff8a80;
+}
+
+.gostop-player-area--me {
+  border-top: 3px solid #667eea;
+}
+
+.gostop-player-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gostop-player-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.gostop-score-badge {
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.gostop-go-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #ff8a80;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* 패 표시 (겹쳐서) */
+.gostop-hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.gostop-hand--opp {
+  opacity: 0.7;
+}
+
+/* 잡은 카드 작은 표시 */
+.gostop-captured-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-height: 20px;
+}
+
+/* 필드 영역 */
+.gostop-field-area {
+  background: #35654d;
+  border-radius: 10px;
+  padding: 10px 12px;
+  flex: 1;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gostop-field-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gostop-turn-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.75);
+  background: rgba(255,255,255,0.12);
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+.gostop-turn-badge--mine {
+  color: #ffd700;
+  background: rgba(255,215,0,0.2);
+}
+
+.gostop-status-msg {
+  font-size: 0.78rem;
+  color: #ff8a80;
+  font-weight: 600;
+}
+
+.gostop-field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: flex-start;
+}
+
+/* 고/스톱 버튼 */
+.gostop-go-stop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+
+.gostop-btn {
+  padding: 8px 20px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.gostop-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.gostop-btn--go {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+  color: white;
+}
+
+.gostop-btn--stop {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+/* 컨트롤 / 결과 */
+.gostop-controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.gostop-result {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.gostop-result-text {
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.gostop-result-win {
+  color: #f39c12;
+}
+
+.gostop-result-lose {
+  color: #888;
+}
+
+.game-tab-content .gostop-game {
+  border-right: none;
+}

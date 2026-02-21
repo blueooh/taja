@@ -5,16 +5,18 @@ import TypingGame from '@/components/TypingGame'
 import AcidRain from '@/components/AcidRain'
 import BattleGame from '@/components/BattleGame'
 import GomokuGame from '@/components/GomokuGame'
+import GostopGame from '@/components/GostopGame'
 import Scoreboard from '@/components/Scoreboard'
 import type { AuthUser } from '@/lib/auth'
 
-type Tab = 'typing' | 'acidrain' | 'battle' | 'gomoku'
+type Tab = 'typing' | 'acidrain' | 'battle' | 'gomoku' | 'gostop'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'typing', label: '스피드' },
   { id: 'acidrain', label: '산성비' },
   { id: 'battle', label: '배틀' },
   { id: 'gomoku', label: '오목' },
+  { id: 'gostop', label: '고스톱' },
 ]
 
 interface Props {
@@ -89,6 +91,10 @@ export default function GamePanel({
         {/* 오목은 탭 전환 시에도 게임 상태 유지를 위해 항상 마운트 */}
         <div style={{ display: activeTab === 'gomoku' ? 'flex' : 'none', flex: 1, height: '100%', overflow: 'hidden' }}>
           <GomokuGame user={user} onNeedAuth={onNeedAuth} />
+        </div>
+        {/* 고스톱도 항상 마운트 */}
+        <div style={{ display: activeTab === 'gostop' ? 'flex' : 'none', flex: 1, height: '100%', overflow: 'hidden' }}>
+          <GostopGame user={user} onNeedAuth={onNeedAuth} />
         </div>
       </div>
     </div>
