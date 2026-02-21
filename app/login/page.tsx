@@ -1,15 +1,21 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { Suspense } from 'react'
+import { supabase } from '@/lib/supabase'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const oauthError = searchParams.get('error')
+
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useState(oauthError ?? '')
   const [loading, setLoading] = useState(false)
+  const [oauthLoading, setOauthLoading] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,11 +40,42 @@ export default function LoginPage() {
     }
   }
 
+  const handleOAuth = async (provider: 'google' | 'apple') => {
+    setOauthLoading(provider)
+    await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    })
+    setOauthLoading(null)
+  }
+
   return (
     <div className="auth-screen">
       <div className="auth-card">
         <h1 className="auth-title">타짜</h1>
         <h2 className="auth-subtitle">로그인</h2>
+
+        <div className="oauth-buttons">
+          <button
+            className="oauth-btn oauth-btn--google"
+            onClick={() => handleOAuth('google')}
+            disabled={!!oauthLoading}
+          >
+            <GoogleIcon />
+            {oauthLoading === 'google' ? '이동 중...' : 'Google로 로그인'}
+          </button>
+          <button
+            className="oauth-btn oauth-btn--apple"
+            onClick={() => handleOAuth('apple')}
+            disabled={!!oauthLoading}
+          >
+            <AppleIcon />
+            {oauthLoading === 'apple' ? '이동 중...' : 'Apple로 로그인'}
+          </button>
+        </div>
+
+        <div className="auth-divider"><span>또는</span></div>
+
         <form onSubmit={handleSubmit}>
           <input
             className="auth-input"
@@ -74,5 +111,32 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+      <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+      <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+    </svg>
+  )
+}
+
+function AppleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12.94 0c.076 1.415-.387 2.78-1.265 3.774-.878.994-2.17 1.594-3.51 1.54C8.06 3.905 8.571 2.55 9.44 1.578 10.31.607 11.594.02 12.94 0zM17.28 13.02c-.47 1.04-1.01 1.98-1.66 2.83-.87 1.16-1.77 2.32-3.07 2.33-1.29.01-1.7-.8-3.17-.79-1.47.01-1.91.82-3.21.81-1.3-.01-2.14-1.13-3.02-2.3-1.23-1.65-2.2-4.22-2.2-6.69 0-3.72 2.45-5.69 4.86-5.72 1.27-.02 2.47.83 3.26.83.78 0 2.25-.97 3.79-.83.65.03 2.46.26 3.62 1.98-.09.06-2.16 1.24-2.14 3.7.03 2.94 2.61 3.92 2.64 3.93l-.03.03z" fill="currentColor"/>
+    </svg>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }

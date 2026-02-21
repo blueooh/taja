@@ -1339,6 +1339,67 @@ body {
   text-decoration: underline;
 }
 
+/* OAuth 소셜 로그인 버튼 */
+.oauth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-size: 0.93rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s, box-shadow 0.15s;
+  border: 1.5px solid transparent;
+}
+.oauth-btn:hover {
+  opacity: 0.88;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+.oauth-btn--google {
+  background: #fff;
+  color: #3c4043;
+  border-color: #dadce0;
+}
+.oauth-btn--kakao {
+  background: #FEE500;
+  color: #3C1E1E;
+  border-color: #FEE500;
+}
+.oauth-btn--apple {
+  background: #000;
+  color: #fff;
+  border-color: #000;
+}
+
+/* 구분선 */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  color: #bbb;
+  font-size: 0.82rem;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e8e8e8;
+}
+
 /* 게임 내 로그인 버튼 */
 .auth-inline-btn {
   font-size: 0.85rem;
