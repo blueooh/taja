@@ -44,7 +44,10 @@ function LoginForm() {
     setOauthLoading(provider)
     await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        ...(provider === 'kakao' && { scopes: 'profile_nickname' }),
+      },
     })
     setOauthLoading(null)
   }
