@@ -200,13 +200,13 @@ export default function Home() {
             <h3 className="modal-title">회원탈퇴</h3>
             <p style={{ fontSize: '0.88rem', color: '#666', marginBottom: 16, lineHeight: 1.6 }}>
               탈퇴하면 계정 정보가 <strong>즉시 삭제</strong>되며 복구할 수 없습니다.
-              {user?.username
-                ? <><br />비밀번호를 입력해 확인해주세요.</>
-                : <><br />소셜 계정은 비밀번호 없이 탈퇴됩니다.</>
+              {user?.isSocial
+                ? <><br />소셜 계정은 비밀번호 없이 탈퇴됩니다.</>
+                : <><br />비밀번호를 입력해 확인해주세요.</>
               }
             </p>
             <form onSubmit={handleWithdraw}>
-              {user?.username && (
+              {!user?.isSocial && (
                 <input
                   className="auth-input"
                   type="password"
@@ -228,7 +228,7 @@ export default function Home() {
                 <button
                   type="submit"
                   className="modal-submit-btn modal-submit-btn--danger"
-                  disabled={withdrawLoading || (!!user?.username && !withdrawPassword)}
+                  disabled={withdrawLoading || (!user?.isSocial && !withdrawPassword)}
                 >
                   {withdrawLoading ? '처리 중...' : '탈퇴하기'}
                 </button>

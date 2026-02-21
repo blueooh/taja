@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     let authUser: AuthUser
 
     if (existing) {
-      authUser = { id: existing.id, username: '', nickname: existing.nickname }
+      authUser = { id: existing.id, username: '', nickname: existing.nickname, isSocial: true }
     } else {
       const rawName =
         user.user_metadata?.full_name ??
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
         console.error('[supabase-callback] insert error:', insertError?.message)
         return NextResponse.json({ success: false, error: '계정 생성에 실패했습니다.' }, { status: 500 })
       }
-      authUser = { id: newUser.id, username: '', nickname: newUser.nickname }
+      authUser = { id: newUser.id, username: '', nickname: newUser.nickname, isSocial: true }
     }
 
     const sessionId = await createSession(authUser)

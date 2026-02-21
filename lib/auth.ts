@@ -2,6 +2,7 @@ export interface AuthUser {
   id: string
   username: string
   nickname: string
+  isSocial?: boolean
 }
 
 export const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/
