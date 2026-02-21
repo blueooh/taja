@@ -1356,6 +1356,88 @@ body {
   opacity: 0.85;
 }
 
+/* 접속 중인 멤버 */
+.chatbox-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #f5f5f5;
+  flex-shrink: 0;
+}
+
+.chatbox-member-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #666;
+  background: #f5f5f5;
+  border-radius: 20px;
+  padding: 3px 9px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+.chatbox-member-badge:not(:disabled):hover {
+  background: rgba(102, 126, 234, 0.15);
+  color: #667eea;
+}
+
+.chatbox-member-badge--me {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.12));
+  color: #667eea;
+}
+
+.chatbox-member-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #28a745;
+  flex-shrink: 0;
+}
+
+/* 읽지 않은 메시지 빨간 점 */
+.chatbox-unread-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e53e3e;
+  flex-shrink: 0;
+}
+.chatbox-unread-dot--btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 7px;
+  height: 7px;
+}
+.chatbox-unread-dot--badge {
+  width: 7px;
+  height: 7px;
+  margin-left: 1px;
+}
+.chatbox-member-badge--unread {
+  background: rgba(229, 62, 62, 0.1);
+  color: #c53030;
+}
+.chatbox-collapse-btn--back {
+  position: relative;
+}
+
+.chatbox-strip-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #28a745;
+  background: rgba(40, 167, 69, 0.12);
+  border-radius: 10px;
+  padding: 1px 5px;
+  line-height: 1.4;
+}
+
 /* 타짜톡 로그인 게이트 */
 .chatbox-auth-gate {
   flex: 1;
