@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase, type Message } from '@/lib/supabase'
 import type { AuthUser } from '@/lib/auth'
-import type { RealtimeChannel } from '@supabase/supabase-js'
 
 const MAX_MESSAGE_LENGTH = 200
 
@@ -59,7 +58,6 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle }: Props) {
 
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const dmChannelRef = useRef<RealtimeChannel | null>(null)
   const chatModeRef = useRef<ChatMode>('global')
   const dmTargetRef = useRef('')
   const isOpenRef = useRef(isOpen)
@@ -152,6 +150,31 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle }: Props) {
     return () => { supabase.removeChannel(presenceChannel) }
   }, [user])
 
+  // 개인 DM inbox 상시 구독 (로그인 중 언제든 DM 수신)
+  useEffect(() => {
+    if (!nickname) return
+
+    const inbox = supabase.channel(`dm:inbox:${nickname}`)
+    inbox
+      .on('broadcast', { event: 'dm_message' }, ({ payload }) => {
+        const msg = payload as DmMessage
+        if (chatModeRef.current === 'dm' && dmTargetRef.current === msg.sender && isOpenRef.current) {
+          // 현재 이 대화를 보고 있으면 메시지 추가
+          setDmMessages(prev => {
+            if (prev.some(m => m.id === msg.id)) return prev
+            return [...prev, msg]
+          })
+        } else {
+          // 보고 있지 않으면 unread 표시
+          setUnreadDmFrom(msg.sender)
+          sendBrowserNotification(`💬 DM: ${msg.sender}`, msg.content)
+        }
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(inbox) }
+  }, [nickname])
+
   // 로그아웃 시 글로벌로 복귀
   useEffect(() => {
     if (!user) closeDm()
@@ -168,12 +191,6 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle }: Props) {
   const openDm = async (targetNick: string) => {
     if (!user || targetNick === nickname) return
 
-    // 기존 DM 채널 정리
-    if (dmChannelRef.current) {
-      supabase.removeChannel(dmChannelRef.current)
-      dmChannelRef.current = null
-    }
-
     setDmTarget(targetNick)
     dmTargetRef.current = targetNick
     setChatMode('dm')
@@ -184,33 +201,15 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle }: Props) {
     setError(null)
     setUnreadDmFrom(prev => prev === targetNick ? null : prev)
 
-    // DM 기록 불러오기
     const res = await fetch(`/api/dm?with=${encodeURIComponent(targetNick)}`)
     const json = await res.json()
     if (json.success) setDmMessages(json.data)
     setDmLoading(false)
 
-    // DM 채널 구독
-    const roomId = [nickname, targetNick].sort().join(':')
-    const channel = supabase.channel(`dm:${roomId}`, { config: { broadcast: { self: false } } })
-    channel
-      .on('broadcast', { event: 'dm_message' }, ({ payload }) => {
-        setDmMessages(prev => [...prev, payload as DmMessage])
-        if (!isOpenRef.current) {
-          setUnreadDmFrom(targetNick)
-        }
-      })
-      .subscribe()
-    dmChannelRef.current = channel
-
     setTimeout(() => inputRef.current?.focus(), 50)
   }
 
   const closeDm = () => {
-    if (dmChannelRef.current) {
-      supabase.removeChannel(dmChannelRef.current)
-      dmChannelRef.current = null
-    }
     setChatMode('global')
     chatModeRef.current = 'global'
     setDmTarget('')
@@ -275,11 +274,6 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle }: Props) {
     const json = await res.json()
     if (json.success) {
       setDmMessages(prev => prev.map(m => m.id === tempId ? json.data : m))
-      dmChannelRef.current?.send({
-        type: 'broadcast',
-        event: 'dm_message',
-        payload: json.data,
-      })
     } else {
       setDmMessages(prev => prev.filter(m => m.id !== tempId))
       setError(json.error ?? '전송 실패')

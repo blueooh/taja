@@ -54,5 +54,13 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ success: false, error: '전송에 실패했습니다.' }, { status: 500 })
+
+  // receiver의 personal inbox 채널로 실시간 broadcast (서버 → 클라이언트)
+  await supabaseAdmin.channel(`dm:inbox:${to}`).send({
+    type: 'broadcast',
+    event: 'dm_message',
+    payload: data,
+  })
+
   return NextResponse.json({ success: true, data })
 }
