@@ -258,7 +258,8 @@ body {
   overflow-y: auto;
 }
 
-.game-tab-content .battle-game {
+.game-tab-content .battle-game,
+.game-tab-content .gomoku-game {
   border-right: none;
 }
 
@@ -1778,4 +1779,257 @@ body {
   color: #888;
   border-bottom: none;
   margin-bottom: 20px;
+}
+
+/* ===== 오목 게임 ===== */
+.gomoku-game {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 28px;
+  overflow-y: auto;
+}
+
+.gomoku-game h2 {
+  font-size: 1.4rem;
+  margin-bottom: 16px;
+  color: #333;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 12px;
+  flex-shrink: 0;
+}
+
+/* 레이아웃: 사이드바 + 보드 */
+.gomoku-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex: 1;
+}
+
+/* 사이드바 */
+.gomoku-info {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 160px;
+  flex-shrink: 0;
+}
+
+.gomoku-players {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.gomoku-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #666;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.gomoku-player--active {
+  background: linear-gradient(135deg, #667eea22, #764ba222);
+  color: #333;
+  font-weight: 700;
+}
+
+.gomoku-stone-icon {
+  font-size: 1rem;
+}
+
+.gomoku-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.gomoku-turn-indicator {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #888;
+  background: #f0f0f0;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.gomoku-turn-indicator--my {
+  color: white;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.gomoku-elapsed {
+  font-size: 0.78rem;
+  color: #aaa;
+}
+
+.gomoku-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.gomoku-result-text {
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.gomoku-result-win {
+  color: #f39c12;
+}
+
+.gomoku-result-lose {
+  color: #888;
+}
+
+.gomoku-surrender {
+  margin-top: 4px;
+  width: 100%;
+}
+
+/* ===== 보드 ===== */
+.gomoku-board {
+  --cell-size: 32px;
+  display: grid;
+  grid-template-columns: repeat(15, var(--cell-size));
+  grid-template-rows: repeat(15, var(--cell-size));
+  background: #dcb483;
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  padding: calc(var(--cell-size) / 2);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* 교차점 셀 */
+.gomoku-cell {
+  position: relative;
+  width: var(--cell-size);
+  height: var(--cell-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 가로선 */
+.gomoku-cell::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #8b6914;
+  transform: translateY(-50%);
+}
+
+/* 세로선 */
+.gomoku-cell::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #8b6914;
+  transform: translateX(-50%);
+}
+
+/* 엣지 셀 - 선을 절반으로 자름 */
+.gomoku-cell--top-edge::after {
+  top: 50%;
+}
+
+.gomoku-cell--bottom-edge::after {
+  bottom: 50%;
+}
+
+.gomoku-cell--left-edge::before {
+  left: 50%;
+}
+
+.gomoku-cell--right-edge::before {
+  right: 50%;
+}
+
+/* 별점(화점) */
+.gomoku-star {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  background: #6b4f12;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+/* 돌 */
+.gomoku-stone {
+  position: absolute;
+  width: calc(var(--cell-size) - 4px);
+  height: calc(var(--cell-size) - 4px);
+  border-radius: 50%;
+  z-index: 2;
+}
+
+.gomoku-stone--black {
+  background: radial-gradient(circle at 35% 35%, #666, #111 60%, #000);
+  box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.gomoku-stone--white {
+  background: radial-gradient(circle at 35% 35%, #fff, #ddd 60%, #bbb);
+  box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* 승리 돌 강조 */
+@keyframes gomoku-win-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px #f39c12, 0 0 8px rgba(243, 156, 18, 0.7); }
+  50%       { box-shadow: 0 0 0 4px #f39c12, 0 0 16px rgba(243, 156, 18, 0.9); }
+}
+
+.gomoku-stone--winning {
+  animation: gomoku-win-pulse 0.8s ease-in-out infinite;
+}
+
+/* 호버 고스트 돌 */
+.gomoku-stone-ghost {
+  position: absolute;
+  width: calc(var(--cell-size) - 4px);
+  height: calc(var(--cell-size) - 4px);
+  border-radius: 50%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.gomoku-stone-ghost--black {
+  background: radial-gradient(circle at 35% 35%, #666, #111 60%, #000);
+  opacity: 0.4;
+}
+
+.gomoku-stone-ghost--white {
+  background: radial-gradient(circle at 35% 35%, #fff, #ddd 60%, #bbb);
+  opacity: 0.4;
+}
+
+/* 반응형: 작은 화면 */
+@media (max-width: 640px) {
+  .gomoku-board {
+    --cell-size: 22px;
+  }
+
+  .gomoku-layout {
+    flex-direction: column;
+  }
 }
