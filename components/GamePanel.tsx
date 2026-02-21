@@ -2,6 +2,7 @@
 
 import TypingGame from '@/components/TypingGame'
 import AcidRain from '@/components/AcidRain'
+import BattleGame from '@/components/BattleGame'
 import Scoreboard from '@/components/Scoreboard'
 import type { AuthUser } from '@/lib/auth'
 
@@ -51,6 +52,10 @@ export default function GamePanel({
           scoreVersion={acidRainScoreVersion}
           gameType="acidrain"
         />
+      </div>
+
+      <div className="game-panel">
+        <BattleGame user={user} onNeedAuth={onNeedAuth} />
       </div>
     </div>
   )
