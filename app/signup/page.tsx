@@ -71,6 +71,7 @@ export default function SignupPage() {
             <GoogleIcon />
             {oauthLoading === 'google' ? '이동 중...' : 'Google로 시작하기'}
           </button>
+          {/* 카카오 비즈니스 인증 후 활성화
           <button
             className="oauth-btn oauth-btn--kakao"
             onClick={() => handleOAuth('kakao')}
@@ -79,6 +80,7 @@ export default function SignupPage() {
             <KakaoIcon />
             {oauthLoading === 'kakao' ? '이동 중...' : '카카오로 시작하기'}
           </button>
+          */}
         </div>
 
         <div className="auth-divider"><span>또는 이메일로 가입</span></div>

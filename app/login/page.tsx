@@ -67,6 +67,7 @@ function LoginForm() {
             <GoogleIcon />
             {oauthLoading === 'google' ? '이동 중...' : 'Google로 로그인'}
           </button>
+          {/* 카카오 비즈니스 인증 후 활성화
           <button
             className="oauth-btn oauth-btn--kakao"
             onClick={() => handleOAuth('kakao')}
@@ -75,6 +76,7 @@ function LoginForm() {
             <KakaoIcon />
             {oauthLoading === 'kakao' ? '이동 중...' : '카카오로 로그인'}
           </button>
+          */}
         </div>
 
         <div className="auth-divider"><span>또는</span></div>
