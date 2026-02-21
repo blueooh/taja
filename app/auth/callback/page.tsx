@@ -1,58 +1,61 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-export default function AuthCallbackPage() {
+function CallbackInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [message, setMessage] = useState('로그인 처리 중...')
 
   useEffect(() => {
-    let done = false
+    const code = searchParams.get('code')
+    const error = searchParams.get('error')
 
-    const exchange = async (accessToken: string) => {
-      if (done) return
-      done = true
+    if (error) {
+      setMessage('로그인이 취소되었습니다.')
+      setTimeout(() => router.replace('/login'), 2000)
+      return
+    }
 
-      try {
-        const res = await fetch('/api/auth/supabase-callback', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ access_token: accessToken }),
-        })
-        const json = await res.json()
+    if (!code) {
+      router.replace('/login')
+      return
+    }
 
-        if (json.success) {
-          router.replace('/')
-        } else {
-          setMessage(json.error ?? '로그인 실패')
-          setTimeout(() => router.replace('/login'), 2000)
-        }
-      } catch {
-        setMessage('네트워크 오류가 발생했습니다.')
+    const run = async () => {
+      // PKCE 코드를 Supabase 세션으로 교환
+      const { data: { session }, error: exchangeErr } =
+        await supabase.auth.exchangeCodeForSession(code)
+
+      if (exchangeErr || !session) {
+        setMessage('인증에 실패했습니다. 다시 시도해주세요.')
+        setTimeout(() => router.replace('/login'), 2000)
+        return
+      }
+
+      // Supabase 세션 → 우리 커스텀 Redis 세션으로 교환
+      const res = await fetch('/api/auth/supabase-callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: session.access_token }),
+      })
+      const json = await res.json()
+
+      if (json.success) {
+        router.replace('/')
+      } else {
+        setMessage(json.error ?? '로그인 실패')
         setTimeout(() => router.replace('/login'), 2000)
       }
     }
 
-    // PKCE 방식은 클라이언트 초기화 시 이미 코드 교환이 완료될 수 있음
-    // → getSession()으로 먼저 확인
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) exchange(session.access_token)
+    run().catch(() => {
+      setMessage('오류가 발생했습니다.')
+      setTimeout(() => router.replace('/login'), 2000)
     })
-
-    // getSession()에 세션이 없으면 onAuthStateChange로 대기
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          subscription.unsubscribe()
-          exchange(session.access_token)
-        }
-      }
-    )
-
-    return () => { subscription.unsubscribe() }
-  }, [router])
+  }, [searchParams, router])
 
   return (
     <div style={{
@@ -66,5 +69,13 @@ export default function AuthCallbackPage() {
     }}>
       {message}
     </div>
+  )
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense>
+      <CallbackInner />
+    </Suspense>
   )
 }
