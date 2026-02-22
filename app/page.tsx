@@ -1,6 +1,7 @@
 'use client'
 
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useApp } from '@/lib/app-context'
 
 const GAMES = [
   { path: '/typing',   icon: '⌨️', name: '스피드 타자', desc: '빠르고 정확하게 타이핑해 점수를 올리세요' },
@@ -11,15 +12,26 @@ const GAMES = [
 ]
 
 export default function Home() {
+  const router = useRouter()
+  const { user } = useApp()
+
+  const handleGameClick = (path: string) => {
+    if (!user) {
+      router.push('/login')
+    } else {
+      router.push(path)
+    }
+  }
+
   return (
     <div className="game-home">
       <div className="game-grid">
         {GAMES.map(game => (
-          <Link key={game.path} href={game.path} className="game-card-btn">
+          <button key={game.path} className="game-card-btn" onClick={() => handleGameClick(game.path)}>
             <span className="game-card-icon">{game.icon}</span>
             <span className="game-card-name">{game.name}</span>
             <span className="game-card-desc">{game.desc}</span>
-          </Link>
+          </button>
         ))}
       </div>
     </div>

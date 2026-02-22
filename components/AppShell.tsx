@@ -22,6 +22,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const [user, setUser] = useState<AuthUser | null | undefined>(undefined)
 
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem('auth_user')
+      if (cached) setUser(JSON.parse(cached) as AuthUser)
+    } catch {
+      // ignore
+    }
+  }, [])
+
   // 채팅 드로어
   const [chatOpen, setChatOpen] = useState(false)
   const [chatHasUnread, setChatHasUnread] = useState(false)
@@ -44,12 +53,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [withdrawError, setWithdrawError] = useState('')
   const [withdrawLoading, setWithdrawLoading] = useState(false)
 
-  useEffect(() => {
+  const fetchUser = useCallback(() => {
     fetch('/api/auth/me')
       .then(r => r.json())
-      .then(json => setUser(json.success ? json.data : null))
+      .then(json => {
+        const u = json.success ? json.data : null
+        setUser(u)
+        if (u) sessionStorage.setItem('auth_user', JSON.stringify(u))
+        else sessionStorage.removeItem('auth_user')
+      })
       .catch(() => setUser(null))
   }, [])
+
+  useEffect(() => {
+    fetchUser()
+  }, [fetchUser, pathname])
 
   useEffect(() => {
     if (!dropdownOpen) return
@@ -69,6 +87,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       // 네트워크 오류여도 클라이언트 상태 초기화
     } finally {
       setUser(null)
+      sessionStorage.removeItem('auth_user')
       setDropdownOpen(false)
     }
   }, [])
@@ -166,35 +185,39 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="app-header-right">
             <button
               className={`app-header-chat-btn${chatOpen ? ' app-header-chat-btn--active' : ''}`}
-              onClick={toggleChat}
+              onClick={() => user ? toggleChat() : router.push('/login')}
             >
               💬 타짜톡
               {chatHasUnread && !chatOpen && <span className="app-header-chat-unread" />}
             </button>
 
-            {user ? (
-              <div className="top-bar-user-wrap" ref={dropdownRef}>
-                <button className="top-bar-user" onClick={() => setDropdownOpen(v => !v)}>
-                  👤 {user.nickname} ▾
+            <div className="top-bar-user-wrap" ref={dropdownRef}>
+              {user === undefined ? (
+                <div className="top-bar-icon-btn" />
+              ) : (
+                <button
+                  className={`top-bar-icon-btn${user ? ' top-bar-avatar' : ''}`}
+                  onClick={() => user ? setDropdownOpen(v => !v) : router.push('/login')}
+                  title={user?.nickname ?? '로그인'}
+                >
+                  {user ? user.nickname[0].toUpperCase() : '👤'}
                 </button>
-                {dropdownOpen && (
-                  <div className="top-bar-dropdown">
-                    <button className="top-bar-dropdown-item" onClick={openNicknameModal}>
-                      ✏️ 닉네임 변경
-                    </button>
-                    <button className="top-bar-dropdown-item top-bar-dropdown-item--danger" onClick={openWithdrawModal}>
-                      🗑️ 회원탈퇴
-                    </button>
-                    <div style={{ height: 1, background: '#e8eaed', margin: '4px 0' }} />
-                    <button className="top-bar-dropdown-item" onClick={handleLogout}>
-                      로그아웃
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link href="/login" className="top-bar-logout">로그인</Link>
-            )}
+              )}
+              {user && dropdownOpen && (
+                <div className="top-bar-dropdown">
+                  <button className="top-bar-dropdown-item" onClick={openNicknameModal}>
+                    ✏️ 닉네임 변경
+                  </button>
+                  <button className="top-bar-dropdown-item top-bar-dropdown-item--danger" onClick={openWithdrawModal}>
+                    🗑️ 회원탈퇴
+                  </button>
+                  <div style={{ height: 1, background: '#e8eaed', margin: '4px 0' }} />
+                  <button className="top-bar-dropdown-item" onClick={handleLogout}>
+                    🚪 로그아웃
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
