@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import type { AuthUser } from '@/lib/auth'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
-type BattlePhase = 'idle' | 'matchmaking' | 'countdown' | 'playing' | 'finished'
+type BattlePhase = 'room_list' | 'waiting' | 'countdown' | 'playing' | 'finished'
 
 interface BattleRoom {
   roomId: string
@@ -13,10 +13,16 @@ interface BattleRoom {
   opponentNickname: string
 }
 
+interface RoomItem {
+  id: string
+  hostNickname: string
+  createdAt: number
+}
+
 interface Progress {
-  value: number      // 0–100
+  value: number
   finished: boolean
-  time: number       // 완료 시간(초)
+  time: number
 }
 
 interface Props {
@@ -24,10 +30,9 @@ interface Props {
   onNeedAuth: () => void
 }
 
-const MATCHMAKING_TIMEOUT = 60
-
 export default function BattleGame({ user, onNeedAuth }: Props) {
-  const [phase, setPhase] = useState<BattlePhase>('idle')
+  const [phase, setPhase] = useState<BattlePhase>('room_list')
+  const [rooms, setRooms] = useState<RoomItem[]>([])
   const [room, setRoom] = useState<BattleRoom | null>(null)
   const [input, setInput] = useState('')
   const [myProgress, setMyProgress] = useState<Progress>({ value: 0, finished: false, time: 0 })
@@ -35,225 +40,208 @@ export default function BattleGame({ user, onNeedAuth }: Props) {
   const [countdown, setCountdown] = useState(3)
   const [result, setResult] = useState<'win' | 'lose' | null>(null)
   const [elapsed, setElapsed] = useState(0)
-  const [waitSeconds, setWaitSeconds] = useState(0)
+  const [myRoomId, setMyRoomId] = useState<string | null>(null)
 
   const channelRef = useRef<RealtimeChannel | null>(null)
   const startTimeRef = useRef(0)
   const inputRef = useRef<HTMLInputElement>(null)
-  const phaseRef = useRef<BattlePhase>('idle')
+  const phaseRef = useRef<BattlePhase>('room_list')
   const nicknameRef = useRef(user?.nickname ?? '')
   const opponentRef = useRef<Progress>({ value: 0, finished: false, time: 0 })
   const gameTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const matchTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => { nicknameRef.current = user?.nickname ?? '' }, [user])
   useEffect(() => { phaseRef.current = phase }, [phase])
 
-  const clearTimers = useCallback(() => {
+  const clearGameTimer = useCallback(() => {
     if (gameTimerRef.current) { clearInterval(gameTimerRef.current); gameTimerRef.current = null }
-    if (matchTimerRef.current) { clearInterval(matchTimerRef.current); matchTimerRef.current = null }
   }, [])
 
   const leaveChannel = useCallback(() => {
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current)
-      channelRef.current = null
-    }
+    if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null }
   }, [])
 
-  useEffect(() => () => { leaveChannel(); clearTimers() }, [leaveChannel, clearTimers])
+  useEffect(() => () => { leaveChannel(); clearGameTimer() }, [leaveChannel, clearGameTimer])
 
-  // 카운트다운
+  const fetchRooms = useCallback(async () => {
+    try {
+      const res = await fetch('/api/rooms?gameType=battle')
+      const json = await res.json()
+      if (json.success) setRooms(json.data)
+    } catch { /* ignore */ }
+  }, [])
+
+  useEffect(() => {
+    if (phase !== 'room_list') {
+      if (pollTimerRef.current) { clearInterval(pollTimerRef.current); pollTimerRef.current = null }
+      return
+    }
+    fetchRooms()
+    pollTimerRef.current = setInterval(fetchRooms, 3000)
+    return () => { if (pollTimerRef.current) { clearInterval(pollTimerRef.current); pollTimerRef.current = null } }
+  }, [phase, fetchRooms])
+
   useEffect(() => {
     if (phase !== 'countdown') return
     if (countdown <= 0) {
-      setPhase('playing')
-      phaseRef.current = 'playing'
+      setPhase('playing'); phaseRef.current = 'playing'
       startTimeRef.current = Date.now()
       setTimeout(() => inputRef.current?.focus(), 50)
-      gameTimerRef.current = setInterval(() => {
-        setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000))
-      }, 500)
+      gameTimerRef.current = setInterval(() => setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000)), 500)
       return
     }
     const t = setTimeout(() => setCountdown(c => c - 1), 1000)
     return () => clearTimeout(t)
   }, [phase, countdown])
 
-  const updateOpponent = useCallback((p: Progress) => {
-    opponentRef.current = p
-    setOpponentProgress(p)
-  }, [])
-
   const finishGame = useCallback((myResult: 'win' | 'lose') => {
-    clearTimers()
+    clearGameTimer()
     setResult(myResult)
-    setPhase('finished')
-    phaseRef.current = 'finished'
-  }, [clearTimers])
+    setPhase('finished'); phaseRef.current = 'finished'
+  }, [clearGameTimer])
+
+  const startCountdown = useCallback((roomId: string, sentence: string, opponentNickname: string) => {
+    setRoom({ roomId, sentence, opponentNickname })
+    opponentRef.current = { value: 0, finished: false, time: 0 }
+    setOpponentProgress({ value: 0, finished: false, time: 0 })
+    setCountdown(3)
+    setPhase('countdown'); phaseRef.current = 'countdown'
+  }, [])
 
   const setupChannel = useCallback((
     roomId: string,
     role: 'player1' | 'player2',
-    sentenceP2?: string,
-    opponentP2?: string,
+    sentence: string,
+    opponentNick?: string,
   ) => {
     leaveChannel()
-    const channel = supabase.channel(`battle:${roomId}`, {
-      config: { broadcast: { self: false } },
-    })
+    const channel = supabase.channel(`battle:${roomId}`, { config: { broadcast: { self: false } } })
 
-    // Player1이 수신: 문장 + 상대 닉네임
     channel.on('broadcast', { event: 'battle_start' }, ({ payload }) => {
-      if (role !== 'player1' || phaseRef.current !== 'matchmaking') return
-      setRoom({ roomId, sentence: payload.sentence, opponentNickname: payload.nickname })
-      opponentRef.current = { value: 0, finished: false, time: 0 }
-      setOpponentProgress({ value: 0, finished: false, time: 0 })
-      clearTimers()
-      setCountdown(3)
-      setPhase('countdown')
-      phaseRef.current = 'countdown'
+      if (role !== 'player1' || phaseRef.current !== 'waiting') return
+      startCountdown(roomId, sentence, payload.nickname)
     })
 
-    // 진행도 수신
     channel.on('broadcast', { event: 'progress' }, ({ payload }) => {
       if (payload.nickname === nicknameRef.current) return
-      updateOpponent({ value: payload.progress, finished: payload.finished ?? false, time: payload.time ?? 0 })
+      const p = { value: payload.progress, finished: payload.finished ?? false, time: payload.time ?? 0 }
+      opponentRef.current = p
+      setOpponentProgress(p)
     })
 
-    // 상대방 포기/이탈
     channel.on('broadcast', { event: 'opponent_left' }, () => {
       const cur = phaseRef.current
-      if (cur === 'playing' || cur === 'countdown' || cur === 'matchmaking') {
-        finishGame('win')
-      }
+      if (cur === 'playing' || cur === 'countdown' || cur === 'waiting') finishGame('win')
     })
 
     channel.subscribe((status) => {
-      if (status !== 'SUBSCRIBED') return
-      if (role !== 'player2' || !sentenceP2 || !opponentP2) return
-
-      // Player2가 구독 완료 후 약간 딜레이 후 시작 브로드캐스트
+      if (status !== 'SUBSCRIBED' || role !== 'player2' || !opponentNick) return
       setTimeout(() => {
-        channel.send({
-          type: 'broadcast',
-          event: 'battle_start',
-          payload: { sentence: sentenceP2, nickname: nicknameRef.current },
-        })
+        channel.send({ type: 'broadcast', event: 'battle_start', payload: { nickname: nicknameRef.current } })
       }, 400)
-
-      setRoom({ roomId, sentence: sentenceP2, opponentNickname: opponentP2 })
-      opponentRef.current = { value: 0, finished: false, time: 0 }
-      setOpponentProgress({ value: 0, finished: false, time: 0 })
-      clearTimers()
-      setCountdown(3)
-      setPhase('countdown')
-      phaseRef.current = 'countdown'
+      startCountdown(roomId, sentence, opponentNick)
     })
 
     channelRef.current = channel
-  }, [leaveChannel, clearTimers, updateOpponent, finishGame])
+  }, [leaveChannel, finishGame, startCountdown])
 
-  const resetState = useCallback(() => {
+  const goToRoomList = useCallback(() => {
+    leaveChannel(); clearGameTimer()
     setInput('')
     setMyProgress({ value: 0, finished: false, time: 0 })
     setOpponentProgress({ value: 0, finished: false, time: 0 })
     opponentRef.current = { value: 0, finished: false, time: 0 }
-    setResult(null)
-    setElapsed(0)
-    setWaitSeconds(0)
-    setRoom(null)
-  }, [])
+    setResult(null); setElapsed(0); setRoom(null); setMyRoomId(null)
+    setPhase('room_list'); phaseRef.current = 'room_list'
+  }, [leaveChannel, clearGameTimer])
 
-  const handleCancel = useCallback(async () => {
-    clearTimers()
-    leaveChannel()
-    setPhase('idle')
-    phaseRef.current = 'idle'
-    await fetch('/api/battle/queue', { method: 'DELETE' }).catch(() => {})
-  }, [clearTimers, leaveChannel])
-
-  const startMatchmaking = async () => {
+  const handleCreateRoom = async () => {
     if (!user) { onNeedAuth(); return }
-    resetState()
-    setPhase('matchmaking')
-    phaseRef.current = 'matchmaking'
+    const res = await fetch('/api/rooms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameType: 'battle' }),
+    })
+    const json = await res.json()
+    if (!json.success) return
+    const { roomId, sentence } = json.data
+    setMyRoomId(roomId)
+    setPhase('waiting'); phaseRef.current = 'waiting'
+    setupChannel(roomId, 'player1', sentence)
+  }
 
-    let secs = 0
-    matchTimerRef.current = setInterval(() => {
-      secs++
-      setWaitSeconds(secs)
-      if (secs >= MATCHMAKING_TIMEOUT) handleCancel()
-    }, 1000)
+  const handleJoinRoom = async (roomId: string) => {
+    if (!user) { onNeedAuth(); return }
+    const res = await fetch(`/api/rooms/${roomId}/join`, { method: 'POST' })
+    const json = await res.json()
+    if (!json.success) { fetchRooms(); return }
+    setupChannel(roomId, 'player2', json.data.sentence, json.data.hostNickname)
+  }
 
-    try {
-      const res = await fetch('/api/battle/queue', { method: 'POST' })
-      const json = await res.json()
-      if (!json.success) { handleCancel(); return }
-
-      if (json.status === 'matched') {
-        setupChannel(json.roomId, 'player2', json.sentence, json.opponent)
-      } else {
-        setupChannel(json.roomId, 'player1')
-      }
-    } catch {
-      handleCancel()
+  const handleCancelRoom = async () => {
+    if (myRoomId) {
+      channelRef.current?.send({ type: 'broadcast', event: 'opponent_left', payload: {} })
+      await fetch(`/api/rooms/${myRoomId}`, { method: 'DELETE' }).catch(() => {})
     }
+    goToRoomList()
   }
 
   const handleSurrender = () => {
     channelRef.current?.send({ type: 'broadcast', event: 'opponent_left', payload: {} })
-    leaveChannel()
-    finishGame('lose')
+    leaveChannel(); finishGame('lose')
   }
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!room || phaseRef.current !== 'playing') return
     const value = e.target.value
     setInput(value)
-
     const progress = Math.min(100, Math.round((value.length / room.sentence.length) * 100))
     const finished = value === room.sentence
     const time = finished ? (Date.now() - startTimeRef.current) / 1000 : 0
-
     setMyProgress({ value: progress, finished, time })
     channelRef.current?.send({
-      type: 'broadcast',
-      event: 'progress',
+      type: 'broadcast', event: 'progress',
       payload: { nickname: nicknameRef.current, progress, finished, time },
     })
-
     if (finished) {
       const opp = opponentRef.current
-      const myResult = !opp.finished || time < opp.time ? 'win' : 'lose'
-      finishGame(myResult)
+      finishGame(!opp.finished || time < opp.time ? 'win' : 'lose')
     }
   }
 
-  // ===== RENDER =====
   return (
     <div className="battle-game">
-      {phase === 'idle' && (
-        <div className="start-screen">
-          {!user ? (
-            <>
-              <p style={{ color: '#888' }}>게임을 시작하려면 로그인이 필요합니다.</p>
-              <button onClick={onNeedAuth} className="start-button">로그인하고 시작</button>
-            </>
+      {phase === 'room_list' && (
+        <div className="room-list-screen">
+          <div className="room-list-header">
+            <button className="room-create-btn" onClick={handleCreateRoom}>＋ 방 만들기</button>
+          </div>
+          {rooms.length === 0 ? (
+            <div className="room-list-empty">
+              대기 중인 방이 없습니다.<br />방을 만들어 상대를 기다려보세요!
+            </div>
           ) : (
-            <>
-              <p>같은 문장을 실시간으로 대결!<br />상대방보다 빠르게 입력하세요.</p>
-              <button onClick={startMatchmaking} className="start-button">대결 시작</button>
-            </>
+            <div className="room-list">
+              {rooms.map(r => (
+                <div key={r.id} className="room-item">
+                  <div className="room-item-info">
+                    <span className="room-item-host">{r.hostNickname}의 방</span>
+                    <span className="room-item-ago">{Math.floor((Date.now() - r.createdAt) / 60000)}분 전</span>
+                  </div>
+                  <button className="room-join-btn" onClick={() => handleJoinRoom(r.id)}>입장</button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}
 
-      {phase === 'matchmaking' && (
+      {phase === 'waiting' && (
         <div className="battle-matchmaking">
           <div className="battle-spinner" />
-          <p className="battle-matchmaking-text">상대방을 찾는 중... {waitSeconds}s</p>
-          <button onClick={handleCancel} className="reset-button">취소</button>
+          <p className="battle-matchmaking-text">상대방을 기다리는 중...</p>
+          <button onClick={handleCancelRoom} className="reset-button">취소</button>
         </div>
       )}
 
@@ -264,9 +252,7 @@ export default function BattleGame({ user, onNeedAuth }: Props) {
             <span className="battle-vs-label">VS</span>
             <span className="battle-vs-name">{room.opponentNickname}</span>
           </div>
-          <div className="battle-countdown-number">
-            {countdown === 0 ? 'GO!' : countdown}
-          </div>
+          <div className="battle-countdown-number">{countdown === 0 ? 'GO!' : countdown}</div>
         </div>
       )}
 
@@ -280,7 +266,7 @@ export default function BattleGame({ user, onNeedAuth }: Props) {
             <div className="battle-bar-bg">
               <div className="battle-bar-fill battle-bar-me" style={{ width: `${myProgress.value}%` }} />
             </div>
-            <div className="battle-player-row" style={{ marginTop: '10px' }}>
+            <div className="battle-player-row" style={{ marginTop: 10 }}>
               <span className="battle-player-name">{room.opponentNickname}</span>
               {opponentProgress.finished && (
                 <span className="battle-player-time">{opponentProgress.time.toFixed(1)}s ✓</span>
@@ -290,23 +276,15 @@ export default function BattleGame({ user, onNeedAuth }: Props) {
               <div className="battle-bar-fill battle-bar-opp" style={{ width: `${opponentProgress.value}%` }} />
             </div>
           </div>
-
           <div className="sentence-display">
             <p className="sentence-text">{room.sentence}</p>
           </div>
-
           <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={handleInput}
-            onPaste={e => e.preventDefault()}
-            onCopy={e => e.preventDefault()}
-            onCut={e => e.preventDefault()}
-            placeholder="여기에 타이핑하세요..."
-            className="typing-input"
+            ref={inputRef} type="text" value={input} onChange={handleInput}
+            onPaste={e => e.preventDefault()} onCopy={e => e.preventDefault()} onCut={e => e.preventDefault()}
+            placeholder="여기에 타이핑하세요..." className="typing-input"
           />
-          <button onClick={handleSurrender} className="reset-button" style={{ marginTop: '4px' }}>포기</button>
+          <button onClick={handleSurrender} className="reset-button" style={{ marginTop: 4 }}>포기</button>
         </div>
       )}
 
@@ -327,7 +305,7 @@ export default function BattleGame({ user, onNeedAuth }: Props) {
               </div>
             </div>
           )}
-          <button onClick={startMatchmaking} className="play-again-button">다시 대결</button>
+          <button onClick={goToRoomList} className="play-again-button">방 목록으로</button>
         </div>
       )}
     </div>

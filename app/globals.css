@@ -63,6 +63,24 @@ body {
   overflow: hidden;
 }
 
+.top-bar-dropdown-user {
+  padding: 12px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.top-bar-dropdown-nickname {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #202124;
+}
+
+.top-bar-dropdown-username {
+  font-size: 0.78rem;
+  color: #9aa0a6;
+}
+
 .top-bar-dropdown-item {
   display: flex;
   align-items: center;
@@ -1693,6 +1711,101 @@ body {
   padding-bottom: 12px;
 }
 
+/* 방 목록 */
+.room-list-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.room-list-header {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.room-create-btn {
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.room-create-btn:hover {
+  background: #1557b0;
+}
+
+.room-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.room-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 1px solid #e8eaed;
+  border-radius: 10px;
+  padding: 12px 16px;
+  transition: box-shadow 0.15s;
+}
+
+.room-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.room-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.room-item-host {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #202124;
+}
+
+.room-item-ago {
+  font-size: 0.78rem;
+  color: #9aa0a6;
+}
+
+.room-join-btn {
+  background: #e8f0fe;
+  color: #1a73e8;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 16px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.room-join-btn:hover {
+  background: #c5d8fd;
+}
+
+.room-list-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #9aa0a6;
+  line-height: 1.7;
+}
+
 /* 매칭 대기 */
 .battle-matchmaking {
   display: flex;
@@ -2300,6 +2413,49 @@ body {
   border-right: none;
 }
 
+/* ===== 고스톱 모바일 반응형 ===== */
+@media (max-width: 640px) {
+  .gostop-game {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  /* 뷰포트 고정 해제 → 콘텐츠 높이로 자연 스크롤 */
+  .gostop-layout {
+    flex: none;
+    min-height: auto;
+  }
+
+  .gostop-field-area {
+    flex: none;
+    min-height: 120px;
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .gostop-player-area {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+
+  .gostop-field {
+    gap: 4px;
+  }
+
+  .gostop-hand {
+    gap: 3px;
+  }
+
+  .gostop-go-stop {
+    gap: 6px;
+  }
+
+  .gostop-btn {
+    padding: 7px 14px;
+    font-size: 0.85rem;
+  }
+}
+
 /* ===== 앱 셸 (구조 개편) ===== */
 .app-shell {
   height: 100vh;
@@ -2418,7 +2574,43 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 40px;
+}
+
+.game-section {
+  width: 100%;
+  max-width: 880px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.game-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #202124;
+}
+
+.game-section-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.game-section-badge--offline {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.game-section-badge--online {
+  background: #e8f0fe;
+  color: #1a73e8;
 }
 
 .game-home-title {
@@ -2441,7 +2633,6 @@ body {
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 16px;
   width: 100%;
-  max-width: 880px;
 }
 
 .game-card-btn {
@@ -2635,16 +2826,11 @@ body {
 
   .game-home {
     padding: 24px 16px;
-    gap: 4px;
+    gap: 28px;
   }
 
-  .game-home-title {
-    font-size: 1.3rem;
-  }
-
-  .game-home-subtitle {
-    font-size: 0.88rem;
-    margin-bottom: 20px;
+  .game-section-title {
+    font-size: 0.95rem;
   }
 
   .game-grid {
@@ -2717,7 +2903,7 @@ body {
 
   .game-home {
     padding: 16px 20px;
-    gap: 4px;
+    gap: 20px;
     flex-direction: row;
     align-items: flex-start;
     flex-wrap: wrap;
@@ -2725,21 +2911,14 @@ body {
     overflow-y: auto;
   }
 
-  .game-home-title {
-    font-size: 1.1rem;
-    margin-bottom: 4px;
-    width: 100%;
-  }
-
-  .game-home-subtitle {
-    font-size: 0.82rem;
-    margin-bottom: 0;
-    width: 100%;
+  .game-section {
+    flex: 1;
+    min-width: 200px;
   }
 
   .game-grid {
-    grid-template-columns: repeat(5, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
     max-width: 100%;
   }
 

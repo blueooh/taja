@@ -205,6 +205,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               )}
               {user && dropdownOpen && (
                 <div className="top-bar-dropdown">
+                  <div className="top-bar-dropdown-user">
+                    <span className="top-bar-dropdown-nickname">{user.nickname}</span>
+                    <span className="top-bar-dropdown-username">@{user.username}</span>
+                  </div>
+                  <div style={{ height: 1, background: '#e8eaed', margin: '4px 0' }} />
                   <button className="top-bar-dropdown-item" onClick={openNicknameModal}>
                     ✏️ 닉네임 변경
                   </button>
