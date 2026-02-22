@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { AuthUser } from '@/lib/auth'
 import type { RealtimeChannel } from '@supabase/supabase-js'
+import GameChat from '@/components/GameChat'
 import { HWATU_DECK, shuffleDeck, deal, getCard } from '@/lib/hwatu'
 import type { HwatuCard } from '@/lib/hwatu'
 import { emptyPile, addCards, resolvePlay, calculateScore, isPeok } from '@/lib/gostop-rules'
@@ -438,7 +439,7 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
         <div className="gostop-layout">
           <div className="gostop-player-area gostop-player-area--opp">
             <div className="gostop-player-info">
-              <span className="gostop-player-name">{opponentNickname}</span>
+              <GameChat myNickname={user?.nickname ?? ''} opponentNickname={opponentNickname} />
               <span className="gostop-score-badge">점수: {gs.oppScore}</span>
               {gs.oppGoCount > 0 && <span className="gostop-go-badge">고 {gs.oppGoCount}회</span>}
               <span style={{ fontSize: 12, color: '#888' }}>패: {gs.oppHandCount}장</span>

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { AuthUser } from '@/lib/auth'
 import type { RealtimeChannel } from '@supabase/supabase-js'
+import GameChat from '@/components/GameChat'
 
 type BattlePhase = 'room_list' | 'waiting' | 'countdown' | 'playing' | 'finished'
 
@@ -267,7 +268,7 @@ export default function BattleGame({ user, onNeedAuth }: Props) {
               <div className="battle-bar-fill battle-bar-me" style={{ width: `${myProgress.value}%` }} />
             </div>
             <div className="battle-player-row" style={{ marginTop: 10 }}>
-              <span className="battle-player-name">{room.opponentNickname}</span>
+              <GameChat myNickname={user?.nickname ?? ''} opponentNickname={room.opponentNickname} />
               {opponentProgress.finished && (
                 <span className="battle-player-time">{opponentProgress.time.toFixed(1)}s ✓</span>
               )}

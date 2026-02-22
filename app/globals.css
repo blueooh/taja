@@ -3049,3 +3049,114 @@ body {
     overflow-y: auto !important;
   }
 }
+
+/* ===== GameChat (인게임 빠른 메시지) ===== */
+.game-chat {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.game-chat-bubbles {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+  min-width: 140px;
+  max-width: 260px;
+}
+
+.game-chat-bubble {
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  word-break: break-word;
+  opacity: 1;
+  transition: opacity 0.8s ease;
+  white-space: pre-wrap;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+
+.game-chat-bubble--me {
+  background: #667eea;
+  color: #fff;
+  align-self: flex-end;
+  border-bottom-right-radius: 3px;
+}
+
+.game-chat-bubble--other {
+  background: #fff;
+  color: #222;
+  border: 1px solid #e0e0e0;
+  align-self: flex-start;
+  border-bottom-left-radius: 3px;
+}
+
+.game-chat-bubble--fading {
+  opacity: 0;
+}
+
+.game-chat-nick-btn {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  transition: background 0.15s;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.game-chat-nick-btn:hover {
+  background: rgba(0,0,0,0.08);
+}
+
+.game-chat-form {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 201;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 20px;
+  padding: 4px 4px 4px 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  min-width: 200px;
+}
+
+.game-chat-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.82rem;
+  background: transparent;
+  min-width: 0;
+}
+
+.game-chat-send-btn {
+  background: #667eea;
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.game-chat-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { AuthUser } from '@/lib/auth'
 import type { RealtimeChannel } from '@supabase/supabase-js'
+import GameChat from '@/components/GameChat'
 
 type GomokuPhase = 'room_list' | 'waiting' | 'countdown' | 'playing' | 'finished'
 type StoneColor = 'black' | 'white'
@@ -292,7 +293,7 @@ export default function GomokuGame({ user, onNeedAuth }: Props) {
               </div>
               <div className={`gomoku-player${currentTurn !== myColor && phase === 'playing' ? ' gomoku-player--active' : ''}`}>
                 <span className="gomoku-stone-icon">{myColor === 'black' ? '⚪' : '⚫'}</span>
-                <span>{opponentNickname}</span>
+                <GameChat myNickname={user?.nickname ?? ''} opponentNickname={opponentNickname} />
               </div>
             </div>
             {phase === 'playing' && (
