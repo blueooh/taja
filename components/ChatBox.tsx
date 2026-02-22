@@ -24,6 +24,7 @@ interface Props {
   onNeedAuth: () => void
   isOpen: boolean
   onToggle: () => void
+  onUnreadChange?: (hasUnread: boolean) => void
 }
 
 function sendBrowserNotification(title: string, body: string) {
@@ -33,7 +34,7 @@ function sendBrowserNotification(title: string, body: string) {
   notif.onclick = () => { window.focus(); notif.close() }
 }
 
-export default function ChatBox({ user, onNeedAuth, isOpen, onToggle }: Props) {
+export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadChange }: Props) {
   // 글로벌 채팅
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [wsStatus, setWsStatus] = useState<WsStatus>('connecting')
@@ -67,6 +68,10 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle }: Props) {
   useEffect(() => { chatModeRef.current = chatMode }, [chatMode])
   useEffect(() => { dmTargetRef.current = dmTarget }, [dmTarget])
   useEffect(() => { isOpenRef.current = isOpen }, [isOpen])
+
+  useEffect(() => {
+    onUnreadChange?.(hasUnreadGlobal || !!unreadDmFrom)
+  }, [hasUnreadGlobal, unreadDmFrom, onUnreadChange])
 
   // 글로벌 채팅 읽으면 unread 초기화
   useEffect(() => {

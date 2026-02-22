@@ -2284,3 +2284,480 @@ body {
 .game-tab-content .gostop-game {
   border-right: none;
 }
+
+/* ===== 앱 셸 (구조 개편) ===== */
+.app-shell {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f8f9fa;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 56px;
+  background: #ffffff;
+  border-bottom: 1px solid #e8eaed;
+  position: relative;
+  z-index: 50;
+  flex-shrink: 0;
+}
+
+.app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-header-logo {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #1a73e8;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  letter-spacing: -0.5px;
+  transition: background 0.15s;
+}
+
+.app-header-logo:hover {
+  background: rgba(26, 115, 232, 0.08);
+}
+
+.app-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-header-chat-btn {
+  position: relative;
+  background: none;
+  border: 1px solid #dadce0;
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #5f6368;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.app-header-chat-btn:hover {
+  background: rgba(26, 115, 232, 0.06);
+  border-color: #1a73e8;
+  color: #1a73e8;
+}
+
+.app-header-chat-btn--active {
+  background: #e8f0fe;
+  border-color: #1a73e8;
+  color: #1a73e8;
+}
+
+.app-header-chat-unread {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #d93025;
+  border: 2px solid #ffffff;
+}
+
+.app-main {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== 게임 홈 ===== */
+.game-home {
+  flex: 1;
+  overflow-y: auto;
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.game-home-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #202124;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.game-home-subtitle {
+  font-size: 0.95rem;
+  color: #5f6368;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  width: 100%;
+  max-width: 880px;
+}
+
+.game-card-btn {
+  background: white;
+  border: 1px solid #e8eaed;
+  border-radius: 12px;
+  padding: 28px 20px;
+  cursor: pointer;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-family: inherit;
+}
+
+.game-card-btn:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(60, 64, 67, 0.14);
+  border-color: #1a73e8;
+}
+
+.game-card-btn:active {
+  transform: translateY(-1px);
+}
+
+.game-card-icon {
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.game-card-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #202124;
+}
+
+.game-card-desc {
+  font-size: 0.82rem;
+  color: #5f6368;
+  line-height: 1.5;
+}
+
+/* ===== 게임 뷰 (풀스크린) ===== */
+.game-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.game-view-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  height: 48px;
+  border-bottom: 1px solid #e8eaed;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.game-view-back {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #1a73e8;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: background 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.game-view-back:hover {
+  background: rgba(26, 115, 232, 0.08);
+}
+
+.game-view-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #202124;
+  border-left: 1px solid #e8eaed;
+  padding-left: 12px;
+}
+
+.game-view-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  background: white;
+}
+
+/* 스코어보드 포함 게임 (typing, acidrain) */
+.game-with-scoreboard {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.game-with-scoreboard .typing-game {
+  flex: 2;
+  height: 100%;
+  border-radius: 0;
+  box-shadow: none;
+  border-right: 1px solid #e8eaed;
+  overflow-y: auto;
+}
+
+.game-with-scoreboard .acid-rain-game {
+  flex: 2;
+  height: 100%;
+  border-right: 1px solid #e8eaed;
+}
+
+.game-with-scoreboard .scoreboard {
+  flex: 1;
+  min-width: 240px;
+  height: 100%;
+  border-radius: 0;
+  box-shadow: none;
+  overflow-y: auto;
+}
+
+/* ===== 채팅 드로어 ===== */
+.chat-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(32, 33, 36, 0.28);
+  z-index: 150;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.chat-drawer-backdrop--open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.chat-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 360px;
+  max-width: 100vw;
+  z-index: 160;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-drawer--open {
+  transform: translateX(0);
+}
+
+.chat-drawer .chatbox {
+  flex: 1;
+  min-height: 0;
+  border-radius: 0;
+  box-shadow: -4px 0 24px rgba(60, 64, 67, 0.18);
+  height: 100%;
+}
+
+/* ===== 모바일 반응형 ===== */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0 12px;
+    height: 52px;
+  }
+
+  .app-header-chat-btn {
+    padding: 6px 12px;
+    font-size: 0.82rem;
+  }
+
+  .top-bar-user {
+    font-size: 0.82rem;
+    padding: 4px 6px;
+  }
+
+  .game-home {
+    padding: 24px 16px;
+    gap: 4px;
+  }
+
+  .game-home-title {
+    font-size: 1.3rem;
+  }
+
+  .game-home-subtitle {
+    font-size: 0.88rem;
+    margin-bottom: 20px;
+  }
+
+  .game-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .game-card-btn {
+    padding: 20px 14px;
+    gap: 8px;
+  }
+
+  .game-card-icon {
+    font-size: 2rem;
+  }
+
+  .game-card-name {
+    font-size: 0.95rem;
+  }
+
+  .game-card-desc {
+    font-size: 0.76rem;
+  }
+
+  .chat-drawer {
+    width: 100vw;
+  }
+
+  .game-with-scoreboard {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .game-with-scoreboard .typing-game,
+  .game-with-scoreboard .acid-rain-game {
+    flex: none;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid #e8eaed;
+  }
+
+  .game-with-scoreboard .typing-game {
+    min-height: 440px;
+  }
+
+  .game-with-scoreboard .scoreboard {
+    flex: none;
+    height: auto;
+    min-width: unset;
+    min-height: 300px;
+  }
+}
+
+/* 아주 작은 화면 - 1열 */
+@media (max-width: 360px) {
+  .game-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== 가로모드 지원 ===== */
+@media (orientation: landscape) and (max-height: 520px) {
+  .app-header {
+    height: 46px;
+  }
+
+  .chat-drawer {
+    top: 0;
+  }
+
+  .game-home {
+    padding: 16px 20px;
+    gap: 4px;
+    flex-direction: row;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+    overflow-y: auto;
+  }
+
+  .game-home-title {
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+    width: 100%;
+  }
+
+  .game-home-subtitle {
+    font-size: 0.82rem;
+    margin-bottom: 0;
+    width: 100%;
+  }
+
+  .game-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    max-width: 100%;
+  }
+
+  .game-card-btn {
+    padding: 14px 8px;
+    gap: 6px;
+  }
+
+  .game-card-icon {
+    font-size: 1.6rem;
+  }
+
+  .game-card-name {
+    font-size: 0.82rem;
+  }
+
+  .game-card-desc {
+    display: none;
+  }
+
+  .game-view-header {
+    height: 40px;
+  }
+
+  /* 가로모드에서 스코어보드 항상 row */
+  .game-with-scoreboard {
+    flex-direction: row !important;
+    overflow: hidden !important;
+  }
+
+  .game-with-scoreboard .typing-game,
+  .game-with-scoreboard .acid-rain-game {
+    flex: 2 !important;
+    height: 100% !important;
+    border-right: 1px solid #e8eaed !important;
+    border-bottom: none !important;
+    overflow-y: auto !important;
+  }
+
+  .game-with-scoreboard .typing-game {
+    min-height: unset !important;
+  }
+
+  .game-with-scoreboard .scoreboard {
+    flex: 1 !important;
+    height: 100% !important;
+    min-height: unset !important;
+    overflow-y: auto !important;
+  }
+}
