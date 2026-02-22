@@ -340,8 +340,6 @@ export default function GomokuGame({ user, onNeedAuth }: Props) {
   // ===== RENDER =====
   return (
     <div className="gomoku-game">
-      <h2>⚫ 오목</h2>
-
       {phase === 'idle' && (
         <div className="start-screen">
           {!user ? (

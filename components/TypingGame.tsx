@@ -125,8 +125,6 @@ const TypingGame: React.FC<Props> = ({ user, onScoreSubmitted, onLogout, onNeedA
 
   return (
     <div className="typing-game">
-      <h2>스피드</h2>
-
       {!isGameStarted && !isGameFinished && (
         <div className="start-screen">
           {!user ? (

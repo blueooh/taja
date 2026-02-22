@@ -228,8 +228,6 @@ const AcidRain: React.FC<Props> = ({ user, onScoreSubmitted, onLogout, onNeedAut
 
   return (
     <div className="acid-rain-game">
-      <h2>산성비</h2>
-
       {phase === 'idle' && (
         <div className="start-screen">
           {!user ? (

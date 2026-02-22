@@ -2324,11 +2324,20 @@ body {
   padding: 4px 8px;
   border-radius: 4px;
   letter-spacing: -0.5px;
+  text-decoration: none;
   transition: background 0.15s;
 }
 
 .app-header-logo:hover {
   background: rgba(26, 115, 232, 0.08);
+}
+
+.app-header-game-title {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #5f6368;
+  border-left: 1px solid #e8eaed;
+  padding-left: 12px;
 }
 
 .app-header-right {
@@ -2382,6 +2391,10 @@ body {
   flex-direction: column;
 }
 
+.app-main--game {
+  background: white;
+}
+
 /* ===== 게임 홈 ===== */
 .game-home {
   flex: 1;
@@ -2417,6 +2430,7 @@ body {
 }
 
 .game-card-btn {
+  text-decoration: none;
   background: white;
   border: 1px solid #e8eaed;
   border-radius: 12px;

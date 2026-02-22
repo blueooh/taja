@@ -546,8 +546,6 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
   // ===== RENDER =====
   return (
     <div className="gostop-game">
-      <h2>고스톱</h2>
-
       {phase === 'idle' && (
         <div className="start-screen">
           {!user ? (

@@ -233,8 +233,6 @@ export default function BattleGame({ user, onNeedAuth }: Props) {
   // ===== RENDER =====
   return (
     <div className="battle-game">
-      <h2>⚔️ 배틀</h2>
-
       {phase === 'idle' && (
         <div className="start-screen">
           {!user ? (

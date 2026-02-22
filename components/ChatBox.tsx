@@ -28,6 +28,7 @@ interface Props {
 }
 
 function sendBrowserNotification(title: string, body: string) {
+  if (!('Notification' in window)) return
   if (Notification.permission !== 'granted') return
   if (document.hasFocus()) return
   const notif = new Notification(title, { body, icon: '/favicon.ico', tag: 'chat-message' })
@@ -206,10 +207,16 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
     setError(null)
     setUnreadDmFrom(prev => prev === targetNick ? null : prev)
 
-    const res = await fetch(`/api/dm?with=${encodeURIComponent(targetNick)}`)
-    const json = await res.json()
-    if (json.success) setDmMessages(json.data)
-    setDmLoading(false)
+    try {
+      const res = await fetch(`/api/dm?with=${encodeURIComponent(targetNick)}`)
+      const json = await res.json()
+      if (json.success) setDmMessages(json.data)
+      else setError(json.error ?? 'DM을 불러오는데 실패했습니다.')
+    } catch {
+      setError('DM을 불러오는데 실패했습니다.')
+    } finally {
+      setDmLoading(false)
+    }
 
     setTimeout(() => inputRef.current?.focus(), 50)
   }
@@ -241,17 +248,23 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
     setError(null)
     inputRef.current?.focus()
 
-    const res = await fetch('/api/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content }),
-    })
-    const json = await res.json()
-    if (!json.success) {
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      })
+      const json = await res.json()
+      if (!json.success) {
+        setMessages(prev => prev.filter(m => m.id !== tempId))
+        setError(json.error ?? '전송 실패')
+      }
+    } catch {
       setMessages(prev => prev.filter(m => m.id !== tempId))
-      setError(json.error ?? '전송 실패')
+      setError('네트워크 오류로 전송에 실패했습니다.')
+    } finally {
+      setSending(false)
     }
-    setSending(false)
   }
 
   const handleDmSend = async (e: React.FormEvent) => {
@@ -271,19 +284,25 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
     setError(null)
     inputRef.current?.focus()
 
-    const res = await fetch('/api/dm', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to: dmTarget, content }),
-    })
-    const json = await res.json()
-    if (json.success) {
-      setDmMessages(prev => prev.map(m => m.id === tempId ? json.data : m))
-    } else {
+    try {
+      const res = await fetch('/api/dm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: dmTarget, content }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setDmMessages(prev => prev.map(m => m.id === tempId ? json.data : m))
+      } else {
+        setDmMessages(prev => prev.filter(m => m.id !== tempId))
+        setError(json.error ?? '전송 실패')
+      }
+    } catch {
       setDmMessages(prev => prev.filter(m => m.id !== tempId))
-      setError(json.error ?? '전송 실패')
+      setError('네트워크 오류로 전송에 실패했습니다.')
+    } finally {
+      setSending(false)
     }
-    setSending(false)
   }
 
   // ===== RENDER =====
