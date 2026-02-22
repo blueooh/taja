@@ -1,10 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: {
+            client_id: string
+            callback: (response: { credential: string }) => void
+            ux_mode?: string
+            auto_select?: boolean
+          }) => void
+          prompt: (notification?: (n: { isNotDisplayed: () => boolean; isSkippedMoment: () => boolean }) => void) => void
+        }
+      }
+    }
+  }
+}
 
 function LoginForm() {
   const router = useRouter()
@@ -16,6 +34,79 @@ function LoginForm() {
   const [error, setError] = useState(oauthError ?? '')
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<'google' | 'kakao' | null>(null)
+  const gsiReady = useRef(false)
+
+  const handleGoogleCredential = useCallback(async (credential: string) => {
+    setOauthLoading('google')
+    setError('')
+    try {
+      const { data: { session }, error: signInError } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: credential,
+      })
+      if (signInError || !session) throw new Error(signInError?.message ?? '인증 실패')
+
+      const res = await fetch('/api/auth/supabase-callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: session.access_token }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        router.replace('/')
+      } else {
+        setError(json.error ?? '로그인에 실패했습니다.')
+      }
+    } catch {
+      setError('로그인에 실패했습니다.')
+    } finally {
+      setOauthLoading(null)
+    }
+  }, [router])
+
+  useEffect(() => {
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+    if (!clientId) return
+
+    const initGSI = () => {
+      window.google?.accounts.id.initialize({
+        client_id: clientId,
+        callback: (response) => handleGoogleCredential(response.credential),
+        ux_mode: 'popup',
+        auto_select: false,
+      })
+      gsiReady.current = true
+    }
+
+    if (window.google) {
+      initGSI()
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.defer = true
+    script.onload = initGSI
+    document.head.appendChild(script)
+    return () => {
+      if (document.head.contains(script)) document.head.removeChild(script)
+    }
+  }, [handleGoogleCredential])
+
+  const handleGoogleClick = () => {
+    if (!gsiReady.current || !window.google) {
+      setError('잠시 후 다시 시도해주세요.')
+      return
+    }
+    setOauthLoading('google')
+    window.google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        setOauthLoading(null)
+        setError('Google 로그인 팝업이 차단됐습니다. 팝업 차단을 해제해주세요.')
+      }
+    })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,21 +131,6 @@ function LoginForm() {
     }
   }
 
-  const handleOAuth = async (provider: 'google' | 'kakao') => {
-    setOauthLoading(provider)
-    await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: {
-          prompt: 'select_account',
-        },
-        ...(provider === 'kakao' && { scopes: 'profile_nickname' }),
-      },
-    })
-    setOauthLoading(null)
-  }
-
   return (
     <div className="auth-screen">
       <div className="auth-card">
@@ -64,22 +140,12 @@ function LoginForm() {
         <div className="oauth-buttons">
           <button
             className="oauth-btn oauth-btn--google"
-            onClick={() => handleOAuth('google')}
+            onClick={handleGoogleClick}
             disabled={!!oauthLoading}
           >
             <GoogleIcon />
-            {oauthLoading === 'google' ? '이동 중...' : 'Google로 로그인'}
+            {oauthLoading === 'google' ? '로그인 중...' : 'Google로 로그인'}
           </button>
-          {/* 카카오 비즈니스 인증 후 활성화
-          <button
-            className="oauth-btn oauth-btn--kakao"
-            onClick={() => handleOAuth('kakao')}
-            disabled={!!oauthLoading}
-          >
-            <KakaoIcon />
-            {oauthLoading === 'kakao' ? '이동 중...' : '카카오로 로그인'}
-          </button>
-          */}
         </div>
 
         <div className="auth-divider"><span>또는</span></div>
@@ -129,15 +195,6 @@ function GoogleIcon() {
       <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
       <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
       <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
-    </svg>
-  )
-}
-
-
-function KakaoIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-      <path d="M9 1.5C4.86 1.5 1.5 4.08 1.5 7.26c0 2.04 1.35 3.84 3.39 4.86l-.87 3.21c-.06.21.18.39.36.27L8.1 13.2c.3.03.6.06.9.06 4.14 0 7.5-2.58 7.5-5.76S13.14 1.5 9 1.5z" fill="#3C1E1E"/>
     </svg>
   )
 }
