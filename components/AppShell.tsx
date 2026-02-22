@@ -207,7 +207,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <div className="top-bar-dropdown">
                   <div className="top-bar-dropdown-user">
                     <span className="top-bar-dropdown-nickname">{user.nickname}</span>
-                    <span className="top-bar-dropdown-username">@{user.username}</span>
+                    {user.username ? (
+                      <span className="top-bar-dropdown-username">
+                        {user.isSocial ? user.username : `@${user.username}`}
+                      </span>
+                    ) : null}
                   </div>
                   <div style={{ height: 1, background: '#e8eaed', margin: '4px 0' }} />
                   <button className="top-bar-dropdown-item" onClick={openNicknameModal}>

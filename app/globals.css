@@ -2295,13 +2295,13 @@ body {
   min-height: 20px;
 }
 
-/* 필드 영역 */
+/* 필드 영역 — 카드 2단 높이 고정 */
 .gostop-field-area {
   background: #35654d;
   border-radius: 8px;
   padding: 10px 12px;
   flex: 1;
-  min-height: 120px;
+  min-height: 262px; /* 라벨28 + gap8 + 카드100×2 + gap6 + 패딩20 */
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -2428,7 +2428,7 @@ body {
 
   .gostop-field-area {
     flex: none;
-    min-height: 120px;
+    min-height: 190px; /* 라벨24 + gap6 + 카드72×2 + gap4 + 패딩16 */
     padding: 8px 10px;
     gap: 6px;
   }
