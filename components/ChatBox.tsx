@@ -1,14 +1,13 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { supabase, type Message } from '@/lib/supabase'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { supabase } from '@/lib/supabase'
 import type { AuthUser } from '@/lib/auth'
+import type { ConversationItem } from '@/app/api/dm/inbox/route'
 
-const MAX_MESSAGE_LENGTH = 200
+const MAX_LENGTH = 200
 
-type WsStatus = 'connecting' | 'connected' | 'error'
-type ChatMode = 'global' | 'dm'
-type ChatMessage = Message & { isOptimistic?: boolean }
+type ChatMode = 'inbox' | 'dm'
 
 interface DmMessage {
   id: string
@@ -28,185 +27,127 @@ interface Props {
 }
 
 function sendBrowserNotification(title: string, body: string) {
-  if (!('Notification' in window)) return
-  if (Notification.permission !== 'granted') return
-  if (document.hasFocus()) return
-  const notif = new Notification(title, { body, icon: '/favicon.ico', tag: 'chat-message' })
-  notif.onclick = () => { window.focus(); notif.close() }
+  if (!('Notification' in window) || Notification.permission !== 'granted' || document.hasFocus()) return
+  const n = new Notification(title, { body, icon: '/favicon.ico', tag: 'dm-message' })
+  n.onclick = () => { window.focus(); n.close() }
+}
+
+function formatTime(iso: string) {
+  const d = new Date(iso)
+  const now = new Date()
+  const isToday = d.toDateString() === now.toDateString()
+  return isToday
+    ? d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
 }
 
 export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadChange }: Props) {
-  // 글로벌 채팅
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [wsStatus, setWsStatus] = useState<WsStatus>('connecting')
-  const [notifPerm, setNotifPerm] = useState<NotificationPermission>('default')
-  const [loading, setLoading] = useState(true)
-
-  // DM
-  const [chatMode, setChatMode] = useState<ChatMode>('global')
+  const [chatMode, setChatMode] = useState<ChatMode>('inbox')
+  const [conversations, setConversations] = useState<ConversationItem[]>([])
+  const [inboxLoading, setInboxLoading] = useState(false)
   const [dmTarget, setDmTarget] = useState('')
   const [dmMessages, setDmMessages] = useState<DmMessage[]>([])
   const [dmLoading, setDmLoading] = useState(false)
-
-  // 공용
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [onlineMembers, setOnlineMembers] = useState<string[]>([])
-
-  // 읽지 않은 메시지
-  const [hasUnreadGlobal, setHasUnreadGlobal] = useState(false)
-  const [unreadDmFrom, setUnreadDmFrom] = useState<string | null>(null)
+  const [unreadFrom, setUnreadFrom] = useState<Set<string>>(new Set())
+  const [onlineDropdown, setOnlineDropdown] = useState<string | null>(null)
+  const onlineDropdownRef = useRef<HTMLDivElement>(null)
 
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const chatModeRef = useRef<ChatMode>('global')
+  const chatModeRef = useRef<ChatMode>('inbox')
   const dmTargetRef = useRef('')
   const isOpenRef = useRef(isOpen)
-
   const nickname = user?.nickname ?? ''
+  const nicknameRef = useRef(nickname)
 
+  useEffect(() => { nicknameRef.current = nickname }, [nickname])
   useEffect(() => { chatModeRef.current = chatMode }, [chatMode])
   useEffect(() => { dmTargetRef.current = dmTarget }, [dmTarget])
   useEffect(() => { isOpenRef.current = isOpen }, [isOpen])
 
-  useEffect(() => {
-    onUnreadChange?.(hasUnreadGlobal || !!unreadDmFrom)
-  }, [hasUnreadGlobal, unreadDmFrom, onUnreadChange])
+  useEffect(() => { onUnreadChange?.(unreadFrom.size > 0) }, [unreadFrom, onUnreadChange])
 
-  // 글로벌 채팅 읽으면 unread 초기화
+  // 채팅창 열릴 때 즉시 하단 이동
   useEffect(() => {
-    if (isOpen && chatMode === 'global') setHasUnreadGlobal(false)
-  }, [isOpen, chatMode])
+    if (!isOpen || !listRef.current) return
+    listRef.current.scrollTop = listRef.current.scrollHeight
+  }, [isOpen])
 
+  // 새 메시지 smooth 스크롤
   useEffect(() => {
-    if ('Notification' in window) setNotifPerm(Notification.permission)
-  }, [])
+    if (!listRef.current) return
+    listRef.current.scrollTo({ top: listRef.current.scrollHeight, behavior: isOpen ? 'smooth' : 'auto' })
+  }, [dmMessages])
 
-  // 글로벌 채팅 구독
-  useEffect(() => {
-    const fetchMessages = async () => {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .order('created_at', { ascending: true })
-        .limit(200)
-      if (error) setError('메시지를 불러오는데 실패했습니다.')
-      else setMessages(data ?? [])
-      setLoading(false)
+  const fetchInbox = useCallback(async () => {
+    if (!user) return
+    setInboxLoading(true)
+    try {
+      const res = await fetch('/api/dm/inbox')
+      const json = await res.json()
+      if (json.success) setConversations(json.data)
+    } catch { /* ignore */ } finally {
+      setInboxLoading(false)
     }
-    fetchMessages()
-
-    const channel = supabase
-      .channel('messages-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        const incoming = payload.new as Message
-        setMessages((prev) => {
-          if (prev.some((m) => m.id === incoming.id)) return prev
-          const tempIdx = prev.findIndex(
-            (m) => m.isOptimistic && m.nickname === incoming.nickname && m.content === incoming.content
-          )
-          if (tempIdx !== -1) {
-            const next = [...prev]
-            next[tempIdx] = incoming
-            return next
-          }
-          return [...prev, incoming]
-        })
-        if (incoming.nickname !== nickname) {
-          sendBrowserNotification(`💬 ${incoming.nickname}`, incoming.content)
-          if (!isOpenRef.current || chatModeRef.current === 'dm') {
-            setHasUnreadGlobal(true)
-          }
-        }
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') setWsStatus('connected')
-        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setWsStatus('error')
-        else setWsStatus('connecting')
-      })
-
-    return () => { supabase.removeChannel(channel) }
-  }, [nickname])
-
-  // 스크롤 하단 유지
-  useEffect(() => {
-    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight
-  }, [messages, dmMessages])
-
-  // 접속 중인 멤버 추적 (Presence)
-  useEffect(() => {
-    const presenceChannel = supabase.channel('taja:online')
-
-    presenceChannel
-      .on('presence', { event: 'sync' }, () => {
-        const state = presenceChannel.presenceState<{ nickname: string }>()
-        const members = Object.values(state)
-          .flat()
-          .map(p => p.nickname)
-          .filter(Boolean)
-        setOnlineMembers([...new Set(members)])
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED' && user) {
-          await presenceChannel.track({ nickname: user.nickname })
-        }
-      })
-
-    return () => { supabase.removeChannel(presenceChannel) }
   }, [user])
 
-  // 개인 DM inbox 상시 구독 (로그인 중 언제든 DM 수신)
+  // 채팅창 열릴 때 inbox 새로고침
+  useEffect(() => {
+    if (!isOpen || !user || chatMode !== 'inbox') return
+    fetchInbox()
+  }, [isOpen, fetchInbox, user, chatMode])
+
+  // 온라인 멤버 Presence 추적
+  useEffect(() => {
+    const ch = supabase.channel('taja:online')
+    ch.on('presence', { event: 'sync' }, () => {
+      const state = ch.presenceState<{ nickname: string }>()
+      const members = Object.values(state).flat().map(p => p.nickname).filter(Boolean)
+      setOnlineMembers([...new Set(members)])
+    }).subscribe(async (status) => {
+      if (status === 'SUBSCRIBED' && user) await ch.track({ nickname: user.nickname })
+    })
+    return () => { supabase.removeChannel(ch) }
+  }, [user])
+
+  // DM 수신 구독
   useEffect(() => {
     if (!nickname) return
-
     const inbox = supabase.channel(`dm:inbox:${nickname}`)
-    inbox
-      .on('broadcast', { event: 'dm_message' }, ({ payload }) => {
-        const msg = payload as DmMessage
-        if (chatModeRef.current === 'dm' && dmTargetRef.current === msg.sender && isOpenRef.current) {
-          // 현재 이 대화를 보고 있으면 메시지 추가
-          setDmMessages(prev => {
-            if (prev.some(m => m.id === msg.id)) return prev
-            return [...prev, msg]
-          })
-        } else {
-          // 보고 있지 않으면 unread 표시
-          setUnreadDmFrom(msg.sender)
-          sendBrowserNotification(`💬 DM: ${msg.sender}`, msg.content)
-        }
-      })
-      .subscribe()
-
+    inbox.on('broadcast', { event: 'dm_message' }, ({ payload }) => {
+      const msg = payload as DmMessage
+      const isViewingThisConv =
+        chatModeRef.current === 'dm' && dmTargetRef.current === msg.sender && isOpenRef.current
+      if (isViewingThisConv) {
+        setDmMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg])
+      } else {
+        setUnreadFrom(prev => new Set([...prev, msg.sender]))
+        sendBrowserNotification(`💬 ${msg.sender}`, msg.content)
+      }
+      setConversations(prev => [
+        { partner: msg.sender, lastMessage: msg.content, lastAt: msg.created_at },
+        ...prev.filter(c => c.partner !== msg.sender),
+      ])
+    }).subscribe()
     return () => { supabase.removeChannel(inbox) }
   }, [nickname])
 
-  // 로그아웃 시 글로벌로 복귀
+  // 로그아웃 시 inbox로 복귀
   useEffect(() => {
-    if (!user) closeDm()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!user) { setChatMode('inbox'); setDmTarget(''); setDmMessages([]) }
   }, [user])
 
-  const requestNotifPermission = async () => {
-    if (!('Notification' in window)) return
-    const result = await Notification.requestPermission()
-    setNotifPerm(result)
-  }
-
-  // ===== DM =====
-  const openDm = async (targetNick: string) => {
+  const openDm = useCallback(async (targetNick: string) => {
     if (!user || targetNick === nickname) return
-
-    setDmTarget(targetNick)
-    dmTargetRef.current = targetNick
-    setChatMode('dm')
-    chatModeRef.current = 'dm'
-    setDmMessages([])
+    setDmTarget(targetNick); dmTargetRef.current = targetNick
+    setChatMode('dm'); chatModeRef.current = 'dm'
+    setDmMessages([]); setInput(''); setError(null)
+    setUnreadFrom(prev => { const s = new Set(prev); s.delete(targetNick); return s })
     setDmLoading(true)
-    setInput('')
-    setError(null)
-    setUnreadDmFrom(prev => prev === targetNick ? null : prev)
-
     try {
       const res = await fetch(`/api/dm?with=${encodeURIComponent(targetNick)}`)
       const json = await res.json()
@@ -217,82 +158,40 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
     } finally {
       setDmLoading(false)
     }
-
     setTimeout(() => inputRef.current?.focus(), 50)
-  }
+  }, [user, nickname])
 
-  const closeDm = () => {
-    setChatMode('global')
-    chatModeRef.current = 'global'
-    setDmTarget('')
-    dmTargetRef.current = ''
-    setInput('')
-    setError(null)
-  }
-
-  // ===== 전송 =====
-  const handleGlobalSend = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const content = input.trim()
-    if (!content || sending || !user) return
-
-    const tempId = `temp-${Date.now()}`
-    const optimistic: ChatMessage = {
-      id: tempId, nickname, content,
-      created_at: new Date().toISOString(),
-      isOptimistic: true,
-    }
-    setMessages(prev => [...prev, optimistic])
-    setInput('')
-    setSending(true)
-    setError(null)
-    inputRef.current?.focus()
-
-    try {
-      const res = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
-      })
-      const json = await res.json()
-      if (!json.success) {
-        setMessages(prev => prev.filter(m => m.id !== tempId))
-        setError(json.error ?? '전송 실패')
-      }
-    } catch {
-      setMessages(prev => prev.filter(m => m.id !== tempId))
-      setError('네트워크 오류로 전송에 실패했습니다.')
-    } finally {
-      setSending(false)
-    }
-  }
+  const backToInbox = useCallback(() => {
+    setChatMode('inbox'); chatModeRef.current = 'inbox'
+    setDmTarget(''); dmTargetRef.current = ''
+    setInput(''); setError(null)
+    fetchInbox()
+  }, [fetchInbox])
 
   const handleDmSend = async (e: React.FormEvent) => {
     e.preventDefault()
     const content = input.trim()
     if (!content || sending || !user || !dmTarget) return
-
     const tempId = `temp-${Date.now()}`
     const optimistic: DmMessage = {
       id: tempId, sender: nickname, receiver: dmTarget, content,
-      created_at: new Date().toISOString(),
-      isOptimistic: true,
+      created_at: new Date().toISOString(), isOptimistic: true,
     }
     setDmMessages(prev => [...prev, optimistic])
-    setInput('')
-    setSending(true)
-    setError(null)
+    setInput(''); setSending(true); setError(null)
     inputRef.current?.focus()
-
     try {
       const res = await fetch('/api/dm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ to: dmTarget, content }),
       })
       const json = await res.json()
       if (json.success) {
         setDmMessages(prev => prev.map(m => m.id === tempId ? json.data : m))
+        setConversations(prev => [
+          { partner: dmTarget, lastMessage: content, lastAt: new Date().toISOString() },
+          ...prev.filter(c => c.partner !== dmTarget),
+        ])
       } else {
         setDmMessages(prev => prev.filter(m => m.id !== tempId))
         setError(json.error ?? '전송 실패')
@@ -305,32 +204,19 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
     }
   }
 
-  // ===== RENDER =====
-  const notifButtonLabel = notifPerm === 'granted' ? '🔔' : notifPerm === 'denied' ? '🔕' : '🔔'
-  const notifButtonTitle =
-    notifPerm === 'granted' ? '알림 켜짐' :
-    notifPerm === 'denied' ? '알림이 브라우저에서 차단됨' : '알림 켜기'
+  // 온라인 드롭다운 외부 클릭 시 닫기
+  useEffect(() => {
+    if (!onlineDropdown) return
+    const handler = (e: MouseEvent) => {
+      if (onlineDropdownRef.current && !onlineDropdownRef.current.contains(e.target as Node)) {
+        setOnlineDropdown(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [onlineDropdown])
 
-  if (!isOpen) {
-    return (
-      <div className="chatbox chatbox--collapsed" onClick={onToggle} title="타짜톡 펼치기">
-        <div className="chatbox-strip">
-          <span className="chatbox-strip-arrow">◀</span>
-          <span
-            className={`chatbox-ws-dot chatbox-ws-dot--${wsStatus}`}
-            title={wsStatus === 'connected' ? '실시간 연결됨' : wsStatus === 'error' ? '연결 오류' : '연결 중'}
-          />
-          {(hasUnreadGlobal || unreadDmFrom) && (
-            <span className="chatbox-unread-dot" />
-          )}
-          {onlineMembers.length > 0 && (
-            <span className="chatbox-strip-count">{onlineMembers.length}</span>
-          )}
-          <span className="chatbox-strip-label">💬 타짜톡</span>
-        </div>
-      </div>
-    )
-  }
+  const otherOnline = onlineMembers.filter(m => m !== nickname)
 
   return (
     <div className="chatbox">
@@ -339,60 +225,18 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
         <div className="chatbox-header-left">
           {chatMode === 'dm' ? (
             <>
-              <button className="chatbox-collapse-btn chatbox-collapse-btn--back" onClick={closeDm} title="글로벌 채팅으로">
-                ←
-                {hasUnreadGlobal && <span className="chatbox-unread-dot chatbox-unread-dot--btn" />}
-              </button>
-              <h2>💬 {dmTarget}</h2>
+              <button className="chatbox-collapse-btn chatbox-collapse-btn--back" onClick={backToInbox} title="목록으로">←</button>
+              <h2>{dmTarget}</h2>
+              {onlineMembers.includes(dmTarget) && <span className="chatbox-online-dot" title="접속 중" />}
             </>
           ) : (
             <>
-              <button className="chatbox-collapse-btn" onClick={onToggle} title="타짜톡 접기">▶</button>
+              <button className="chatbox-collapse-btn" onClick={onToggle} title="타짜톡 닫기">▶</button>
               <h2>💬 타짜톡</h2>
-              <span
-                className={`chatbox-ws-dot chatbox-ws-dot--${wsStatus}`}
-                title={wsStatus === 'connected' ? '실시간 연결됨' : wsStatus === 'error' ? '연결 오류' : '연결 중'}
-              />
             </>
           )}
         </div>
-        <div className="chatbox-header-right">
-          {user && chatMode === 'global' ? (
-            <>
-              {notifPerm !== 'denied' && (
-                <button
-                  className={`chatbox-notif-btn ${notifPerm === 'granted' ? 'chatbox-notif-btn--on' : ''}`}
-                  onClick={requestNotifPermission}
-                  title={notifButtonTitle}
-                  disabled={notifPerm === 'granted'}
-                >
-                  {notifButtonLabel}
-                </button>
-              )}
-              <span className="chatbox-badge">{nickname}</span>
-            </>
-          ) : null}
-        </div>
       </div>
-
-      {/* 접속 중인 멤버 (글로벌 모드만) */}
-      {chatMode === 'global' && onlineMembers.length > 0 && (
-        <div className="chatbox-members">
-          {onlineMembers.map(nick => (
-            <button
-              key={nick}
-              className={`chatbox-member-badge${nick === nickname ? ' chatbox-member-badge--me' : ''}${unreadDmFrom === nick ? ' chatbox-member-badge--unread' : ''}`}
-              onClick={() => nick !== nickname && openDm(nick)}
-              title={nick === nickname ? '나' : `${nick}에게 DM 보내기`}
-              disabled={!user || nick === nickname}
-            >
-              <span className="chatbox-member-dot" />
-              {nick}
-              {unreadDmFrom === nick && <span className="chatbox-unread-dot chatbox-unread-dot--badge" />}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* 콘텐츠 */}
       {!user ? (
@@ -403,19 +247,14 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
       ) : chatMode === 'dm' ? (
         <>
           <div className="chatbox-list" ref={listRef}>
-            {dmLoading && (
-              <div className="chatbox-status">불러오는 중...</div>
-            )}
+            {dmLoading && <div className="chatbox-status">불러오는 중...</div>}
             {!dmLoading && dmMessages.length === 0 && (
               <div className="chatbox-status">{dmTarget}와의 첫 대화를 시작하세요!</div>
             )}
             {dmMessages.map(msg => {
               const isMe = msg.sender === nickname
               return (
-                <div
-                  key={msg.id}
-                  className={`chatbox-msg ${isMe ? 'chatbox-msg--me' : 'chatbox-msg--other'} ${msg.isOptimistic ? 'chatbox-msg--optimistic' : ''}`}
-                >
+                <div key={msg.id} className={`chatbox-msg ${isMe ? 'chatbox-msg--me' : 'chatbox-msg--other'} ${msg.isOptimistic ? 'chatbox-msg--optimistic' : ''}`}>
                   <span className="chatbox-msg-nick">{isMe ? '나' : msg.sender}</span>
                   <div className="chatbox-bubble">{msg.content}</div>
                   <span className="chatbox-msg-time">
@@ -428,69 +267,66 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
           {error && <div className="chatbox-error">{error}</div>}
           <form className="chatbox-form" onSubmit={handleDmSend}>
             <input
-              ref={inputRef}
-              className="chatbox-input"
-              type="text"
+              ref={inputRef} className="chatbox-input" type="text"
               placeholder={`${dmTarget}에게 메시지...`}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              maxLength={MAX_MESSAGE_LENGTH}
-              disabled={sending}
+              value={input} onChange={e => setInput(e.target.value)}
+              maxLength={MAX_LENGTH} disabled={sending}
             />
-            <button className="chatbox-send-btn" type="submit" disabled={!input.trim() || sending}>
-              전송
-            </button>
+            <button className="chatbox-send-btn" type="submit" disabled={!input.trim() || sending}>전송</button>
           </form>
         </>
       ) : (
-        <>
-          <div className="chatbox-list" ref={listRef}>
-            {loading && (
-              <div className="chatbox-skeleton">
-                {[false, true, false, false, true].map((isMe, i) => (
-                  <div key={i} className={`chatbox-skeleton-msg ${isMe ? 'chatbox-skeleton-msg--me' : ''}`}>
-                    <div className="chatbox-skeleton-nick" />
-                    <div className="chatbox-skeleton-bubble" />
+        <div className="chatbox-inbox">
+          {/* 접속 중인 멤버 */}
+          {otherOnline.length > 0 && (
+            <div className="chatbox-online-row">
+              <span className="chatbox-online-label">접속 중</span>
+              <div className="chatbox-online-members">
+                {otherOnline.map(nick => (
+                  <div key={nick} className="chatbox-online-wrap" ref={onlineDropdown === nick ? onlineDropdownRef : null}>
+                    <button
+                      className={`chatbox-online-badge${onlineDropdown === nick ? ' chatbox-online-badge--active' : ''}`}
+                      onClick={() => setOnlineDropdown(prev => prev === nick ? null : nick)}
+                    >
+                      <span className="chatbox-online-dot" />
+                      {nick}
+                    </button>
+                    {onlineDropdown === nick && (
+                      <div className="chatbox-online-menu">
+                        <button className="chatbox-online-menu-item" onClick={() => { setOnlineDropdown(null); openDm(nick) }}>
+                          💬 대화하기
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
-            )}
-            {!loading && messages.length === 0 && (
-              <div className="chatbox-status">첫 메시지를 남겨보세요!</div>
-            )}
-            {messages.map(msg => {
-              const isMe = msg.nickname === nickname
-              return (
-                <div
-                  key={msg.id}
-                  className={`chatbox-msg ${isMe ? 'chatbox-msg--me' : 'chatbox-msg--other'} ${msg.isOptimistic ? 'chatbox-msg--optimistic' : ''}`}
-                >
-                  <span className="chatbox-msg-nick">{msg.nickname}</span>
-                  <div className="chatbox-bubble">{msg.content}</div>
-                  <span className="chatbox-msg-time">
-                    {new Date(msg.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-          {error && <div className="chatbox-error">{error}</div>}
-          <form className="chatbox-form" onSubmit={handleGlobalSend}>
-            <input
-              ref={inputRef}
-              className="chatbox-input"
-              type="text"
-              placeholder="메시지 입력..."
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              maxLength={MAX_MESSAGE_LENGTH}
-              disabled={sending}
-            />
-            <button className="chatbox-send-btn" type="submit" disabled={!input.trim() || sending}>
-              전송
-            </button>
-          </form>
-        </>
+            </div>
+          )}
+
+          {/* 대화 목록 */}
+          {inboxLoading ? (
+            <div className="chatbox-status">불러오는 중...</div>
+          ) : conversations.length === 0 ? (
+            <div className="chatbox-status">대화 내역이 없습니다.<br />닉네임으로 먼저 말을 걸어보세요!</div>
+          ) : (
+            <div className="chatbox-conv-list">
+              {conversations.map(conv => (
+                <button key={conv.partner} className="chatbox-conv-item" onClick={() => openDm(conv.partner)}>
+                  <div className="chatbox-conv-top">
+                    <span className="chatbox-conv-partner">
+                      {onlineMembers.includes(conv.partner) && <span className="chatbox-online-dot" />}
+                      {conv.partner}
+                    </span>
+                    <span className="chatbox-conv-time">{formatTime(conv.lastAt)}</span>
+                    {unreadFrom.has(conv.partner) && <span className="chatbox-unread-dot" />}
+                  </div>
+                  <div className="chatbox-conv-preview">{conv.lastMessage}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )

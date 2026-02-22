@@ -19,9 +19,17 @@ export async function GET(req: NextRequest) {
     .eq('id', user.id)
     .maybeSingle()
 
+  const isSocial = !!dbUser?.supabase_auth_id
+
+  let username = user.username
+  if (isSocial && !username && dbUser?.supabase_auth_id) {
+    const { data: authData } = await supabaseAdmin.auth.admin.getUserById(dbUser.supabase_auth_id)
+    username = authData?.user?.email ?? ''
+  }
+
   return NextResponse.json({
     success: true,
-    data: { ...user, isSocial: !!dbUser?.supabase_auth_id },
+    data: { ...user, username, isSocial },
   })
 }
 

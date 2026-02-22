@@ -949,7 +949,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  scroll-behavior: smooth;
 }
 
 .chatbox-status {
@@ -1521,49 +1520,6 @@ body {
 }
 
 /* 접속 중인 멤버 */
-.chatbox-members {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px 14px;
-  border-bottom: 1px solid #f1f3f4;
-  flex-shrink: 0;
-}
-
-.chatbox-member-badge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #5f6368;
-  background: #f1f3f4;
-  border-radius: 12px;
-  padding: 3px 9px;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.15s, color 0.15s;
-}
-
-.chatbox-member-badge:not(:disabled):hover {
-  background: #e8f0fe;
-  color: #1a73e8;
-}
-
-.chatbox-member-badge--me {
-  background: #e8f0fe;
-  color: #1a73e8;
-}
-
-.chatbox-member-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #1e8e3e;
-  flex-shrink: 0;
-}
-
 /* 읽지 않은 메시지 빨간 점 */
 .chatbox-unread-dot {
   display: inline-block;
@@ -1574,37 +1530,161 @@ body {
   flex-shrink: 0;
 }
 
-.chatbox-unread-dot--btn {
+/* 접속 중 초록 점 */
+.chatbox-online-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #1e8e3e;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
+/* 인박스 */
+.chatbox-inbox {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chatbox-online-row {
+  padding: 8px 14px;
+  border-bottom: 1px solid #f1f3f4;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chatbox-online-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #9aa0a6;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chatbox-online-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.chatbox-online-wrap {
+  position: relative;
+}
+
+.chatbox-online-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #1e8e3e;
+  background: #e6f4ea;
+  border-radius: 12px;
+  padding: 3px 10px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.chatbox-online-badge:hover,
+.chatbox-online-badge--active {
+  background: #ceead6;
+}
+
+.chatbox-online-menu {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 7px;
-  height: 7px;
+  top: calc(100% + 4px);
+  left: 0;
+  background: #fff;
+  border: 1px solid #e8eaed;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(60, 64, 67, 0.15);
+  z-index: 200;
+  min-width: 120px;
+  overflow: hidden;
 }
 
-.chatbox-unread-dot--badge {
-  width: 7px;
-  height: 7px;
-  margin-left: 1px;
+.chatbox-online-menu-item {
+  display: block;
+  width: 100%;
+  padding: 9px 14px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #202124;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.1s;
 }
 
-.chatbox-member-badge--unread {
-  background: #fce8e6;
-  color: #d93025;
+.chatbox-online-menu-item:hover {
+  background: #f1f3f4;
+}
+
+.chatbox-conv-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.chatbox-conv-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: none;
+  border-bottom: 1px solid #f1f3f4;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.1s;
+}
+
+.chatbox-conv-item:hover {
+  background: #f8f9fa;
+}
+
+.chatbox-conv-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chatbox-conv-partner {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #202124;
+}
+
+.chatbox-conv-time {
+  font-size: 0.74rem;
+  color: #9aa0a6;
+  flex-shrink: 0;
+}
+
+.chatbox-conv-preview {
+  font-size: 0.82rem;
+  color: #5f6368;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chatbox-collapse-btn--back {
   position: relative;
-}
-
-.chatbox-strip-count {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #1e8e3e;
-  background: #e6f4ea;
-  border-radius: 10px;
-  padding: 1px 5px;
-  line-height: 1.4;
 }
 
 /* 타짜톡 로그인 게이트 */
