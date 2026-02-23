@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import type { AuthUser } from '@/lib/auth'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import GameChat from '@/components/GameChat'
+import { soundCardSelect, soundCardPlace, soundCardCapture, soundGo, soundStop, soundWin, soundLose, soundTick, soundGameStart } from '@/lib/gostop-sounds'
 import { HWATU_DECK, shuffleDeck, deal, getCard } from '@/lib/hwatu'
 import type { HwatuCard } from '@/lib/hwatu'
 import { emptyPile, addCards, resolvePlay, calculateScore, isPeok } from '@/lib/gostop-rules'
@@ -171,16 +172,19 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
 
   useEffect(() => {
     if (phase !== 'countdown') return
-    if (countdown <= 0) { setPhase('playing'); return }
+    if (countdown <= 0) { soundGameStart(); setPhase('playing'); return }
+    soundTick()
     const t = setTimeout(() => setCountdown(c => c - 1), 1000)
     return () => clearTimeout(t)
   }, [phase, countdown])
 
   const finishGame = useCallback((result: 'me' | 'opponent') => {
+    if (result === 'me') soundWin(); else soundLose()
     setWinner(result); setPhase('finished'); phaseRef.current = 'finished'
   }, [])
 
   const processDrawResult = useCallback((drawnCardId: number, takenIds: number[], isP: boolean, turnOf: 'me' | 'opponent') => {
+    if (takenIds.length > 0) soundCardCapture()
     updateGameState(prev => {
       const drawnCard = getCard(drawnCardId)
       const taken = takenIds.map(id => getCard(id))
@@ -261,6 +265,7 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
     channel.on('broadcast', { event: 'play_card' }, ({ payload }) => {
       if (phaseRef.current !== 'playing') return
       const { cardId, takenIds, turnOf } = payload as { cardId: number; takenIds: number[]; turnOf: 'me' | 'opponent' }
+      soundCardPlace()
       const localTurnOf: 'me' | 'opponent' = turnOf === 'me' ? 'opponent' : 'me'
       processPlayCard(cardId, takenIds, localTurnOf, 'opp')
       if (role === 'player1') {
@@ -362,6 +367,7 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
     const gs = gameStateRef.current
     if (phaseRef.current !== 'playing' || gs.currentTurn !== 'me' || gs.subPhase !== 'select_card') return
     if (selectedCard?.id === card.id) {
+      soundCardPlace()
       const { taken, newField } = resolvePlay(gs.field, card)
       const takenIds = taken.map(c => c.id)
       processPlayCard(card.id, takenIds, 'me', 'mine')
@@ -371,13 +377,15 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
       }
       setSelectedCard(null)
     } else {
+      soundCardSelect()
       setSelectedCard(card)
     }
   }
 
   const handleGoDecision = (decision: 'go' | 'stop') => {
     channelRef.current?.send({ type: 'broadcast', event: 'go_decision', payload: { decision } })
-    if (decision === 'stop') { finishGame('me'); return }
+    if (decision === 'stop') { soundStop(); finishGame('me'); return }
+    soundGo()
     updateGameState(prev => {
       const newCount = prev.myGoCount + 1
       setStatusMsg(`고! (${newCount}번째)`)
