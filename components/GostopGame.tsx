@@ -122,15 +122,18 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
   const [winner, setWinner] = useState<'me' | 'opponent' | null>(null)
   const [statusMsg, setStatusMsg] = useState('')
   const [myRoomId, setMyRoomId] = useState<string | null>(null)
+  const [opponentId, setOpponentId] = useState('')
 
   const channelRef = useRef<RealtimeChannel | null>(null)
   const phaseRef = useRef<GostopPhase>('room_list')
   const gameStateRef = useRef<GameState>(initGameState())
   const roleRef = useRef<'player1' | 'player2' | null>(null)
   const nicknameRef = useRef(user?.nickname ?? '')
+  const userIdRef = useRef(user?.id ?? '')
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => { nicknameRef.current = user?.nickname ?? '' }, [user])
+  useEffect(() => { userIdRef.current = user?.id ?? '' }, [user])
   useEffect(() => { phaseRef.current = phase }, [phase])
 
   const updateGameState = useCallback((updater: (prev: GameState) => GameState) => {
@@ -232,7 +235,7 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
     })
   }, [updateGameState])
 
-  const setupChannel = useCallback((rid: string, role: 'player1' | 'player2', opponentNick?: string) => {
+  const setupChannel = useCallback((rid: string, role: 'player1' | 'player2', opponentNick?: string, opponentNickId?: string) => {
     if (channelRef.current) supabase.removeChannel(channelRef.current)
     roleRef.current = role
 
@@ -240,8 +243,9 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
 
     channel.on('broadcast', { event: 'game_start' }, ({ payload }) => {
       if (role !== 'player1' || phaseRef.current !== 'waiting') return
-      const { hand1Ids, hand2Ids, fieldIds, deckIds, player2Nickname } = payload
+      const { hand1Ids, hand2Ids, fieldIds, deckIds, player2Nickname, player2Id } = payload
       setOpponentNickname(player2Nickname)
+      setOpponentId(player2Id ?? '')
       const gs: GameState = {
         ...initGameState(),
         deck: (deckIds as number[]).map(getCard),
@@ -300,10 +304,11 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
           payload: {
             hand1Ids: dealt.hand1.map(c => c.id), hand2Ids: dealt.hand2.map(c => c.id),
             fieldIds: dealt.field.map(c => c.id), deckIds: dealt.remaining.map(c => c.id),
-            player2Nickname: nicknameRef.current,
+            player2Nickname: nicknameRef.current, player2Id: userIdRef.current,
           },
         })
         setOpponentNickname(opponentNick)
+        setOpponentId(opponentNickId ?? '')
         const gs: GameState = {
           ...initGameState(), deck: [], field: dealt.field,
           myHand: dealt.hand2, oppHandCount: dealt.hand1.length,
@@ -320,7 +325,7 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
   const goToRoomList = useCallback(() => {
     leaveChannel()
     setGameState(initGameState()); gameStateRef.current = initGameState()
-    setSelectedCard(null); setWinner(null); setStatusMsg(''); setMyRoomId(null)
+    setSelectedCard(null); setWinner(null); setStatusMsg(''); setMyRoomId(null); setOpponentId('')
     setPhase('room_list'); phaseRef.current = 'room_list'
   }, [leaveChannel])
 
@@ -342,7 +347,7 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
     const res = await fetch(`/api/rooms/${roomId}/join`, { method: 'POST' })
     const json = await res.json()
     if (!json.success) { fetchRooms(); return }
-    setupChannel(roomId, 'player2', json.data.hostNickname)
+    setupChannel(roomId, 'player2', json.data.hostNickname, json.data.hostId)
   }
 
   const handleCancelRoom = async () => {
@@ -439,7 +444,7 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
         <div className="gostop-layout">
           <div className="gostop-player-area gostop-player-area--opp">
             <div className="gostop-player-info">
-              <GameChat myNickname={user?.nickname ?? ''} opponentNickname={opponentNickname} />
+              <GameChat myNickname={user?.nickname ?? ''} opponentNickname={opponentNickname} opponentId={opponentId} />
               <span className="gostop-score-badge">점수: {gs.oppScore}</span>
               {gs.oppGoCount > 0 && <span className="gostop-go-badge">고 {gs.oppGoCount}회</span>}
               <span style={{ fontSize: 12, color: '#888' }}>패: {gs.oppHandCount}장</span>

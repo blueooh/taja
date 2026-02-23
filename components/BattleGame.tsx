@@ -12,6 +12,7 @@ interface BattleRoom {
   roomId: string
   sentence: string
   opponentNickname: string
+  opponentId: string
 }
 
 interface RoomItem {
@@ -48,11 +49,13 @@ export default function BattleGame({ user, onNeedAuth }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const phaseRef = useRef<BattlePhase>('room_list')
   const nicknameRef = useRef(user?.nickname ?? '')
+  const userIdRef = useRef(user?.id ?? '')
   const opponentRef = useRef<Progress>({ value: 0, finished: false, time: 0 })
   const gameTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => { nicknameRef.current = user?.nickname ?? '' }, [user])
+  useEffect(() => { userIdRef.current = user?.id ?? '' }, [user])
   useEffect(() => { phaseRef.current = phase }, [phase])
 
   const clearGameTimer = useCallback(() => {
@@ -102,8 +105,8 @@ export default function BattleGame({ user, onNeedAuth }: Props) {
     setPhase('finished'); phaseRef.current = 'finished'
   }, [clearGameTimer])
 
-  const startCountdown = useCallback((roomId: string, sentence: string, opponentNickname: string) => {
-    setRoom({ roomId, sentence, opponentNickname })
+  const startCountdown = useCallback((roomId: string, sentence: string, opponentNickname: string, opponentId: string) => {
+    setRoom({ roomId, sentence, opponentNickname, opponentId })
     opponentRef.current = { value: 0, finished: false, time: 0 }
     setOpponentProgress({ value: 0, finished: false, time: 0 })
     setCountdown(3)
@@ -115,13 +118,14 @@ export default function BattleGame({ user, onNeedAuth }: Props) {
     role: 'player1' | 'player2',
     sentence: string,
     opponentNick?: string,
+    opponentId?: string,
   ) => {
     leaveChannel()
     const channel = supabase.channel(`battle:${roomId}`, { config: { broadcast: { self: false } } })
 
     channel.on('broadcast', { event: 'battle_start' }, ({ payload }) => {
       if (role !== 'player1' || phaseRef.current !== 'waiting') return
-      startCountdown(roomId, sentence, payload.nickname)
+      startCountdown(roomId, sentence, payload.nickname, payload.userId ?? '')
     })
 
     channel.on('broadcast', { event: 'progress' }, ({ payload }) => {
@@ -139,9 +143,9 @@ export default function BattleGame({ user, onNeedAuth }: Props) {
     channel.subscribe((status) => {
       if (status !== 'SUBSCRIBED' || role !== 'player2' || !opponentNick) return
       setTimeout(() => {
-        channel.send({ type: 'broadcast', event: 'battle_start', payload: { nickname: nicknameRef.current } })
+        channel.send({ type: 'broadcast', event: 'battle_start', payload: { nickname: nicknameRef.current, userId: userIdRef.current } })
       }, 400)
-      startCountdown(roomId, sentence, opponentNick)
+      startCountdown(roomId, sentence, opponentNick, opponentId ?? '')
     })
 
     channelRef.current = channel
@@ -177,7 +181,7 @@ export default function BattleGame({ user, onNeedAuth }: Props) {
     const res = await fetch(`/api/rooms/${roomId}/join`, { method: 'POST' })
     const json = await res.json()
     if (!json.success) { fetchRooms(); return }
-    setupChannel(roomId, 'player2', json.data.sentence, json.data.hostNickname)
+    setupChannel(roomId, 'player2', json.data.sentence, json.data.hostNickname, json.data.hostId)
   }
 
   const handleCancelRoom = async () => {
@@ -268,7 +272,7 @@ export default function BattleGame({ user, onNeedAuth }: Props) {
               <div className="battle-bar-fill battle-bar-me" style={{ width: `${myProgress.value}%` }} />
             </div>
             <div className="battle-player-row" style={{ marginTop: 10 }}>
-              <GameChat myNickname={user?.nickname ?? ''} opponentNickname={room.opponentNickname} />
+              <GameChat myNickname={user?.nickname ?? ''} opponentNickname={room.opponentNickname} opponentId={room.opponentId} />
               {opponentProgress.finished && (
                 <span className="battle-player-time">{opponentProgress.time.toFixed(1)}s ✓</span>
               )}

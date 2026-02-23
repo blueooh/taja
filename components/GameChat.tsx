@@ -18,9 +18,10 @@ const MAX_LENGTH = 200
 interface Props {
   myNickname: string
   opponentNickname: string
+  opponentId: string
 }
 
-export default function GameChat({ myNickname, opponentNickname }: Props) {
+export default function GameChat({ myNickname, opponentNickname, opponentId }: Props) {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
@@ -80,7 +81,7 @@ export default function GameChat({ myNickname, opponentNickname }: Props) {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
     const content = input.trim()
-    if (!content || sending || !myNickname || !channelRef.current) return
+    if (!content || sending || !myNickname || !opponentId || !channelRef.current) return
     const msgId = crypto.randomUUID()
     setInput('')
     setSending(true)
@@ -96,7 +97,7 @@ export default function GameChat({ myNickname, opponentNickname }: Props) {
         fetch('/api/dm', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ to: opponentNickname, content }),
+          body: JSON.stringify({ to: opponentId, content }),
         }),
       ])
     } finally {

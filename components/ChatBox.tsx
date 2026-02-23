@@ -11,11 +11,18 @@ type ChatMode = 'inbox' | 'dm'
 
 interface DmMessage {
   id: string
-  sender: string
-  receiver: string
+  sender_id: string
+  receiver_id: string
+  sender_nickname: string
+  receiver_nickname: string
   content: string
   created_at: string
   isOptimistic?: boolean
+}
+
+interface OnlineMember {
+  nickname: string
+  userId: string
 }
 
 interface Props {
@@ -45,21 +52,22 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
   const [chatMode, setChatMode] = useState<ChatMode>('inbox')
   const [conversations, setConversations] = useState<ConversationItem[]>([])
   const [inboxLoading, setInboxLoading] = useState(false)
-  const [dmTarget, setDmTarget] = useState('')
+  const [dmTarget, setDmTarget] = useState('')         // userId (UUID)
+  const [dmTargetNickname, setDmTargetNickname] = useState('')  // 표시용 닉네임
   const [dmMessages, setDmMessages] = useState<DmMessage[]>([])
   const [dmLoading, setDmLoading] = useState(false)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [onlineMembers, setOnlineMembers] = useState<string[]>([])
-  const [unreadFrom, setUnreadFrom] = useState<Set<string>>(new Set())
-  const [onlineDropdown, setOnlineDropdown] = useState<string | null>(null)
+  const [onlineMembers, setOnlineMembers] = useState<OnlineMember[]>([])
+  const [unreadFrom, setUnreadFrom] = useState<Set<string>>(new Set())  // userId 저장
+  const [onlineDropdown, setOnlineDropdown] = useState<string | null>(null)  // userId
   const onlineDropdownRef = useRef<HTMLDivElement>(null)
 
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const chatModeRef = useRef<ChatMode>('inbox')
-  const dmTargetRef = useRef('')
+  const dmTargetRef = useRef('')   // userId
   const isOpenRef = useRef(isOpen)
   const nickname = user?.nickname ?? ''
   const nicknameRef = useRef(nickname)
@@ -105,51 +113,63 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
   useEffect(() => {
     const ch = supabase.channel('taja:online')
     ch.on('presence', { event: 'sync' }, () => {
-      const state = ch.presenceState<{ nickname: string }>()
-      const members = Object.values(state).flat().map(p => p.nickname).filter(Boolean)
-      setOnlineMembers([...new Set(members)])
+      const state = ch.presenceState<{ nickname: string; userId: string }>()
+      const seen = new Set<string>()
+      const members: OnlineMember[] = []
+      for (const list of Object.values(state)) {
+        for (const p of list) {
+          if (p.userId && !seen.has(p.userId)) {
+            seen.add(p.userId)
+            members.push({ nickname: p.nickname, userId: p.userId })
+          }
+        }
+      }
+      setOnlineMembers(members)
     }).subscribe(async (status) => {
-      if (status === 'SUBSCRIBED' && user) await ch.track({ nickname: user.nickname })
+      if (status === 'SUBSCRIBED' && user) {
+        await ch.track({ nickname: user.nickname, userId: user.id })
+      }
     })
     return () => { supabase.removeChannel(ch) }
   }, [user])
 
   // DM 수신 구독
   useEffect(() => {
-    if (!nickname) return
-    const inbox = supabase.channel(`dm:inbox:${nickname}`)
+    if (!user?.id) return
+    const inbox = supabase.channel(`dm:inbox:${user.id}`)
     inbox.on('broadcast', { event: 'dm_message' }, ({ payload }) => {
       const msg = payload as DmMessage
       const isViewingThisConv =
-        chatModeRef.current === 'dm' && dmTargetRef.current === msg.sender && isOpenRef.current
+        chatModeRef.current === 'dm' && dmTargetRef.current === msg.sender_id && isOpenRef.current
       if (isViewingThisConv) {
         setDmMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg])
       } else {
-        setUnreadFrom(prev => new Set([...prev, msg.sender]))
-        sendBrowserNotification(`💬 ${msg.sender}`, msg.content)
+        setUnreadFrom(prev => new Set([...prev, msg.sender_id]))
+        sendBrowserNotification(`💬 ${msg.sender_nickname}`, msg.content)
       }
       setConversations(prev => [
-        { partner: msg.sender, lastMessage: msg.content, lastAt: msg.created_at },
-        ...prev.filter(c => c.partner !== msg.sender),
+        { partnerId: msg.sender_id, partnerNickname: msg.sender_nickname, lastMessage: msg.content, lastAt: msg.created_at },
+        ...prev.filter(c => c.partnerId !== msg.sender_id),
       ])
     }).subscribe()
     return () => { supabase.removeChannel(inbox) }
-  }, [nickname])
+  }, [user])
 
   // 로그아웃 시 inbox로 복귀
   useEffect(() => {
-    if (!user) { setChatMode('inbox'); setDmTarget(''); setDmMessages([]) }
+    if (!user) { setChatMode('inbox'); setDmTarget(''); setDmTargetNickname(''); setDmMessages([]) }
   }, [user])
 
-  const openDm = useCallback(async (targetNick: string) => {
-    if (!user || targetNick === nickname) return
-    setDmTarget(targetNick); dmTargetRef.current = targetNick
+  const openDm = useCallback(async (targetId: string, targetNickname: string) => {
+    if (!user || targetId === user.id) return
+    setDmTarget(targetId); dmTargetRef.current = targetId
+    setDmTargetNickname(targetNickname)
     setChatMode('dm'); chatModeRef.current = 'dm'
     setDmMessages([]); setInput(''); setError(null)
-    setUnreadFrom(prev => { const s = new Set(prev); s.delete(targetNick); return s })
+    setUnreadFrom(prev => { const s = new Set(prev); s.delete(targetId); return s })
     setDmLoading(true)
     try {
-      const res = await fetch(`/api/dm?with=${encodeURIComponent(targetNick)}`)
+      const res = await fetch(`/api/dm?with=${encodeURIComponent(targetId)}`)
       const json = await res.json()
       if (json.success) setDmMessages(json.data)
       else setError(json.error ?? 'DM을 불러오는데 실패했습니다.')
@@ -159,11 +179,12 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
       setDmLoading(false)
     }
     setTimeout(() => inputRef.current?.focus(), 50)
-  }, [user, nickname])
+  }, [user])
 
   const backToInbox = useCallback(() => {
     setChatMode('inbox'); chatModeRef.current = 'inbox'
     setDmTarget(''); dmTargetRef.current = ''
+    setDmTargetNickname('')
     setInput(''); setError(null)
     fetchInbox()
   }, [fetchInbox])
@@ -174,8 +195,9 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
     if (!content || sending || !user || !dmTarget) return
     const tempId = `temp-${Date.now()}`
     const optimistic: DmMessage = {
-      id: tempId, sender: nickname, receiver: dmTarget, content,
-      created_at: new Date().toISOString(), isOptimistic: true,
+      id: tempId, sender_id: user.id, receiver_id: dmTarget,
+      sender_nickname: nickname, receiver_nickname: dmTargetNickname,
+      content, created_at: new Date().toISOString(), isOptimistic: true,
     }
     setDmMessages(prev => [...prev, optimistic])
     setInput(''); setSending(true); setError(null)
@@ -189,8 +211,8 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
       if (json.success) {
         setDmMessages(prev => prev.map(m => m.id === tempId ? json.data : m))
         setConversations(prev => [
-          { partner: dmTarget, lastMessage: content, lastAt: new Date().toISOString() },
-          ...prev.filter(c => c.partner !== dmTarget),
+          { partnerId: dmTarget, partnerNickname: dmTargetNickname, lastMessage: content, lastAt: new Date().toISOString() },
+          ...prev.filter(c => c.partnerId !== dmTarget),
         ])
       } else {
         setDmMessages(prev => prev.filter(m => m.id !== tempId))
@@ -216,7 +238,7 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
     return () => document.removeEventListener('mousedown', handler)
   }, [onlineDropdown])
 
-  const otherOnline = onlineMembers.filter(m => m !== nickname)
+  const otherOnline = onlineMembers.filter(m => m.userId !== user?.id)
 
   return (
     <div className="chatbox">
@@ -226,8 +248,8 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
           {chatMode === 'dm' ? (
             <>
               <button className="chatbox-collapse-btn chatbox-collapse-btn--back" onClick={backToInbox} title="목록으로">←</button>
-              <h2>{dmTarget}</h2>
-              {onlineMembers.includes(dmTarget) && <span className="chatbox-online-dot" title="접속 중" />}
+              <h2>{dmTargetNickname}</h2>
+              {onlineMembers.some(m => m.userId === dmTarget) && <span className="chatbox-online-dot" title="접속 중" />}
             </>
           ) : (
             <>
@@ -249,13 +271,13 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
           <div className="chatbox-list" ref={listRef}>
             {dmLoading && <div className="chatbox-status">불러오는 중...</div>}
             {!dmLoading && dmMessages.length === 0 && (
-              <div className="chatbox-status">{dmTarget}와의 첫 대화를 시작하세요!</div>
+              <div className="chatbox-status">{dmTargetNickname}와의 첫 대화를 시작하세요!</div>
             )}
             {dmMessages.map(msg => {
-              const isMe = msg.sender === nickname
+              const isMe = msg.sender_id === user.id
               return (
                 <div key={msg.id} className={`chatbox-msg ${isMe ? 'chatbox-msg--me' : 'chatbox-msg--other'} ${msg.isOptimistic ? 'chatbox-msg--optimistic' : ''}`}>
-                  <span className="chatbox-msg-nick">{isMe ? '나' : msg.sender}</span>
+                  <span className="chatbox-msg-nick">{isMe ? '나' : msg.sender_nickname}</span>
                   <div className="chatbox-bubble">{msg.content}</div>
                   <span className="chatbox-msg-time">
                     {new Date(msg.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
@@ -268,7 +290,7 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
           <form className="chatbox-form" onSubmit={handleDmSend}>
             <input
               ref={inputRef} className="chatbox-input" type="text"
-              placeholder={`${dmTarget}에게 메시지...`}
+              placeholder={`${dmTargetNickname}에게 메시지...`}
               value={input} onChange={e => setInput(e.target.value)}
               maxLength={MAX_LENGTH} disabled={sending}
             />
@@ -282,18 +304,18 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
             <div className="chatbox-online-row">
               <span className="chatbox-online-label">접속 중</span>
               <div className="chatbox-online-members">
-                {otherOnline.map(nick => (
-                  <div key={nick} className="chatbox-online-wrap" ref={onlineDropdown === nick ? onlineDropdownRef : null}>
+                {otherOnline.map(member => (
+                  <div key={member.userId} className="chatbox-online-wrap" ref={onlineDropdown === member.userId ? onlineDropdownRef : null}>
                     <button
-                      className={`chatbox-online-badge${onlineDropdown === nick ? ' chatbox-online-badge--active' : ''}`}
-                      onClick={() => setOnlineDropdown(prev => prev === nick ? null : nick)}
+                      className={`chatbox-online-badge${onlineDropdown === member.userId ? ' chatbox-online-badge--active' : ''}`}
+                      onClick={() => setOnlineDropdown(prev => prev === member.userId ? null : member.userId)}
                     >
                       <span className="chatbox-online-dot" />
-                      {nick}
+                      {member.nickname}
                     </button>
-                    {onlineDropdown === nick && (
+                    {onlineDropdown === member.userId && (
                       <div className="chatbox-online-menu">
-                        <button className="chatbox-online-menu-item" onClick={() => { setOnlineDropdown(null); openDm(nick) }}>
+                        <button className="chatbox-online-menu-item" onClick={() => { setOnlineDropdown(null); openDm(member.userId, member.nickname) }}>
                           💬 대화하기
                         </button>
                       </div>
@@ -312,14 +334,14 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
           ) : (
             <div className="chatbox-conv-list">
               {conversations.map(conv => (
-                <button key={conv.partner} className="chatbox-conv-item" onClick={() => openDm(conv.partner)}>
+                <button key={conv.partnerId} className="chatbox-conv-item" onClick={() => openDm(conv.partnerId, conv.partnerNickname)}>
                   <div className="chatbox-conv-top">
                     <span className="chatbox-conv-partner">
-                      {onlineMembers.includes(conv.partner) && <span className="chatbox-online-dot" />}
-                      {conv.partner}
+                      {onlineMembers.some(m => m.userId === conv.partnerId) && <span className="chatbox-online-dot" />}
+                      {conv.partnerNickname}
                     </span>
                     <span className="chatbox-conv-time">{formatTime(conv.lastAt)}</span>
-                    {unreadFrom.has(conv.partner) && <span className="chatbox-unread-dot" />}
+                    {unreadFrom.has(conv.partnerId) && <span className="chatbox-unread-dot" />}
                   </div>
                   <div className="chatbox-conv-preview">{conv.lastMessage}</div>
                 </button>

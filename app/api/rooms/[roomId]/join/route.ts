@@ -60,6 +60,7 @@ export async function POST(
     data: {
       roomId,
       hostNickname: room.hostNickname,
+      hostId: room.hostId,
       sentence: room.sentence,
     },
   })

@@ -66,6 +66,7 @@ export default function GomokuGame({ user, onNeedAuth }: Props) {
   const [winningCells, setWinningCells] = useState<number[]>([])
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
   const [myRoomId, setMyRoomId] = useState<string | null>(null)
+  const [opponentId, setOpponentId] = useState('')
 
   const channelRef = useRef<RealtimeChannel | null>(null)
   const phaseRef = useRef<GomokuPhase>('room_list')
@@ -73,11 +74,13 @@ export default function GomokuGame({ user, onNeedAuth }: Props) {
   const myColorRef = useRef<StoneColor>('black')
   const currentTurnRef = useRef<StoneColor>('black')
   const nicknameRef = useRef(user?.nickname ?? '')
+  const userIdRef = useRef(user?.id ?? '')
   const gameTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startTimeRef = useRef(0)
 
   useEffect(() => { nicknameRef.current = user?.nickname ?? '' }, [user])
+  useEffect(() => { userIdRef.current = user?.id ?? '' }, [user])
   useEffect(() => { phaseRef.current = phase }, [phase])
   useEffect(() => { myColorRef.current = myColor }, [myColor])
   useEffect(() => { currentTurnRef.current = currentTurn }, [currentTurn])
@@ -144,7 +147,7 @@ export default function GomokuGame({ user, onNeedAuth }: Props) {
     if (winCells) finishGame(isOpponent ? 'opponent' : 'me', winCells)
   }, [finishGame])
 
-  const setupChannel = useCallback((rid: string, role: 'player1' | 'player2', opponentP2?: string) => {
+  const setupChannel = useCallback((rid: string, role: 'player1' | 'player2', opponentP2?: string, opponentP2Id?: string) => {
     if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null }
     const color: StoneColor = role === 'player1' ? 'black' : 'white'
     myColorRef.current = color; setMyColor(color)
@@ -154,6 +157,7 @@ export default function GomokuGame({ user, onNeedAuth }: Props) {
     channel.on('broadcast', { event: 'game_start' }, ({ payload }) => {
       if (role !== 'player1' || phaseRef.current !== 'waiting') return
       setOpponentNickname(payload.player2Nickname)
+      setOpponentId(payload.player2Id ?? '')
       setCountdown(3); setPhase('countdown'); phaseRef.current = 'countdown'
     })
 
@@ -173,9 +177,10 @@ export default function GomokuGame({ user, onNeedAuth }: Props) {
     channel.subscribe((status) => {
       if (status !== 'SUBSCRIBED' || role !== 'player2' || !opponentP2) return
       setTimeout(() => {
-        channel.send({ type: 'broadcast', event: 'game_start', payload: { player1Nickname: opponentP2, player2Nickname: nicknameRef.current } })
+        channel.send({ type: 'broadcast', event: 'game_start', payload: { player1Nickname: opponentP2, player2Nickname: nicknameRef.current, player2Id: userIdRef.current } })
       }, 400)
       setOpponentNickname(opponentP2)
+      setOpponentId(opponentP2Id ?? '')
       setCountdown(3); setPhase('countdown'); phaseRef.current = 'countdown'
     })
 
@@ -189,7 +194,7 @@ export default function GomokuGame({ user, onNeedAuth }: Props) {
     setCurrentTurn('black'); currentTurnRef.current = 'black'
     setMyColor('black'); myColorRef.current = 'black'
     setWinner(null); setWinningCells([]); setElapsed(0)
-    setOpponentNickname(''); setHoverIndex(null); setMyRoomId(null)
+    setOpponentNickname(''); setOpponentId(''); setHoverIndex(null); setMyRoomId(null)
     setPhase('room_list'); phaseRef.current = 'room_list'
   }, [leaveChannel, clearGameTimer])
 
@@ -211,7 +216,7 @@ export default function GomokuGame({ user, onNeedAuth }: Props) {
     const res = await fetch(`/api/rooms/${roomId}/join`, { method: 'POST' })
     const json = await res.json()
     if (!json.success) { fetchRooms(); return }
-    setupChannel(roomId, 'player2', json.data.hostNickname)
+    setupChannel(roomId, 'player2', json.data.hostNickname, json.data.hostId)
   }
 
   const handleCancelRoom = async () => {
@@ -293,7 +298,7 @@ export default function GomokuGame({ user, onNeedAuth }: Props) {
               </div>
               <div className={`gomoku-player${currentTurn !== myColor && phase === 'playing' ? ' gomoku-player--active' : ''}`}>
                 <span className="gomoku-stone-icon">{myColor === 'black' ? '⚪' : '⚫'}</span>
-                <GameChat myNickname={user?.nickname ?? ''} opponentNickname={opponentNickname} />
+                <GameChat myNickname={user?.nickname ?? ''} opponentNickname={opponentNickname} opponentId={opponentId} />
               </div>
             </div>
             {phase === 'playing' && (

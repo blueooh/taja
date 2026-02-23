@@ -9,9 +9,3 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 })
 
-export interface Message {
-  id: string
-  nickname: string
-  content: string
-  created_at: string
-}
