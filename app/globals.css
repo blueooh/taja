@@ -2693,6 +2693,11 @@ body {
   color: #1a73e8;
 }
 
+.game-section-badge--random {
+  background: #fce8e6;
+  color: #c62828;
+}
+
 .game-home-title {
   font-size: 1.6rem;
   font-weight: 700;
@@ -3047,6 +3052,260 @@ body {
     height: 100% !important;
     min-height: unset !important;
     overflow-y: auto !important;
+  }
+}
+
+/* ===== 사다리게임 ===== */
+.ladder-setup,
+.ladder-playing {
+  flex: 1;
+  padding: 28px 28px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: white;
+}
+
+.ladder-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #202124;
+  border-bottom: 1px solid #e8eaed;
+  padding-bottom: 12px;
+  margin: 0;
+}
+
+.ladder-desc {
+  font-size: 0.9rem;
+  color: #5f6368;
+  margin: 0;
+}
+
+.ladder-count-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ladder-count-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #3c4043;
+}
+
+.ladder-count-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ladder-count-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  background: white;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3c4043;
+  transition: background 0.15s;
+}
+
+.ladder-count-btn:hover:not(:disabled) {
+  background: #f1f3f4;
+}
+
+.ladder-count-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.ladder-count-num {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a73e8;
+  min-width: 28px;
+  text-align: center;
+}
+
+.ladder-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ladder-inputs-header {
+  display: grid;
+  grid-template-columns: 1fr 28px 1fr;
+  gap: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9aa0a6;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0 2px;
+}
+
+.ladder-input-row {
+  display: grid;
+  grid-template-columns: 1fr 28px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.ladder-input {
+  padding: 9px 12px;
+  font-size: 0.9rem;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+  color: #202124;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ladder-input:focus {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.18);
+}
+
+.ladder-input-arrow {
+  font-size: 1rem;
+  color: #9aa0a6;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.ladder-start-btn {
+  padding: 12px 36px;
+  font-size: 1rem;
+  font-weight: 700;
+  background: #1a73e8;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  align-self: center;
+  font-family: inherit;
+}
+
+.ladder-start-btn:hover {
+  background: #1557b0;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.4);
+}
+
+.ladder-svg-container {
+  overflow-x: auto;
+  display: flex;
+  justify-content: center;
+}
+
+.ladder-svg {
+  display: block;
+}
+
+@keyframes draw-ladder-path {
+  to { stroke-dashoffset: 0; }
+}
+
+.ladder-path {
+  animation: draw-ladder-path 0.65s ease-out forwards;
+}
+
+.ladder-player-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.ladder-player-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: white;
+  border: 1.5px solid #dadce0;
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: inherit;
+  color: #3c4043;
+  transition: all 0.15s;
+}
+
+.ladder-player-btn:hover {
+  border-color: #1a73e8;
+  color: #1a73e8;
+  background: rgba(26, 115, 232, 0.06);
+}
+
+.ladder-player-prize {
+  font-size: 0.78rem;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.ladder-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.ladder-reveal-btn {
+  padding: 9px 22px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: #1a73e8;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+
+.ladder-reveal-btn:hover {
+  background: #1557b0;
+}
+
+.ladder-reset-btn {
+  padding: 9px 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: none;
+  color: #5f6368;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+
+.ladder-reset-btn:hover {
+  background: #f1f3f4;
+}
+
+/* 사다리 모바일 반응형 */
+@media (max-width: 640px) {
+  .ladder-setup,
+  .ladder-playing {
+    padding: 20px 16px;
+    gap: 16px;
+  }
+
+  .ladder-start-btn {
+    width: 100%;
   }
 }
 

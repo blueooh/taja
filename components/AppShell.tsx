@@ -14,6 +14,7 @@ const GAME_META: Record<string, { icon: string; name: string }> = {
   '/battle':   { icon: '⚔️', name: '1:1 배틀'    },
   '/gomoku':   { icon: '⚫', name: '오목'         },
   '/gostop':   { icon: '🎴', name: '고스톱'       },
+  '/ladder':   { icon: '🪜', name: '사다리게임'   },
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {

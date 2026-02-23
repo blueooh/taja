@@ -14,6 +14,10 @@ const ONLINE_GAMES = [
   { path: '/gostop',  icon: '🎴', name: '고스톱',     desc: '화투로 즐기는 전통 고스톱 대결'    },
 ]
 
+const RANDOM_GAMES = [
+  { path: '/ladder', icon: '🪜', name: '사다리게임', desc: '참가자를 입력하고 사다리를 타서 결과를 확인하세요' },
+]
+
 export default function Home() {
   const router = useRouter()
   const { user } = useApp()
@@ -52,6 +56,22 @@ export default function Home() {
         <div className="game-grid">
           {ONLINE_GAMES.map(game => (
             <button key={game.path} className="game-card-btn" onClick={() => handleGameClick(game.path, true)}>
+              <span className="game-card-icon">{game.icon}</span>
+              <span className="game-card-name">{game.name}</span>
+              <span className="game-card-desc">{game.desc}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="game-section">
+        <h2 className="game-section-title">
+          <span className="game-section-badge game-section-badge--random">랜덤</span>
+          같이 즐기기
+        </h2>
+        <div className="game-grid">
+          {RANDOM_GAMES.map(game => (
+            <button key={game.path} className="game-card-btn" onClick={() => handleGameClick(game.path, false)}>
               <span className="game-card-icon">{game.icon}</span>
               <span className="game-card-name">{game.name}</span>
               <span className="game-card-desc">{game.desc}</span>
