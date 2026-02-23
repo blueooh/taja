@@ -113,14 +113,16 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
   useEffect(() => {
     const ch = supabase.channel('taja:online')
     ch.on('presence', { event: 'sync' }, () => {
-      const state = ch.presenceState<{ nickname: string; userId: string }>()
+      const state = ch.presenceState<{ nickname: string; userId?: string }>()
       const seen = new Set<string>()
       const members: OnlineMember[] = []
       for (const list of Object.values(state)) {
         for (const p of list) {
-          if (p.userId && !seen.has(p.userId)) {
-            seen.add(p.userId)
-            members.push({ nickname: p.nickname, userId: p.userId })
+          if (!p.nickname) continue
+          const key = p.userId ?? p.nickname
+          if (!seen.has(key)) {
+            seen.add(key)
+            members.push({ nickname: p.nickname, userId: p.userId ?? '' })
           }
         }
       }
@@ -238,7 +240,9 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
     return () => document.removeEventListener('mousedown', handler)
   }, [onlineDropdown])
 
-  const otherOnline = onlineMembers.filter(m => m.userId !== user?.id)
+  const otherOnline = onlineMembers.filter(m =>
+    m.userId ? m.userId !== user?.id : m.nickname !== nickname
+  )
 
   return (
     <div className="chatbox">
@@ -305,15 +309,15 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
               <span className="chatbox-online-label">접속 중</span>
               <div className="chatbox-online-members">
                 {otherOnline.map(member => (
-                  <div key={member.userId} className="chatbox-online-wrap" ref={onlineDropdown === member.userId ? onlineDropdownRef : null}>
+                  <div key={member.userId || member.nickname} className="chatbox-online-wrap" ref={onlineDropdown === (member.userId || member.nickname) ? onlineDropdownRef : null}>
                     <button
-                      className={`chatbox-online-badge${onlineDropdown === member.userId ? ' chatbox-online-badge--active' : ''}`}
-                      onClick={() => setOnlineDropdown(prev => prev === member.userId ? null : member.userId)}
+                      className={`chatbox-online-badge${onlineDropdown === (member.userId || member.nickname) ? ' chatbox-online-badge--active' : ''}`}
+                      onClick={() => { const key = member.userId || member.nickname; setOnlineDropdown(prev => prev === key ? null : key) }}
                     >
                       <span className="chatbox-online-dot" />
                       {member.nickname}
                     </button>
-                    {onlineDropdown === member.userId && (
+                    {onlineDropdown === (member.userId || member.nickname) && member.userId && (
                       <div className="chatbox-online-menu">
                         <button className="chatbox-online-menu-item" onClick={() => { setOnlineDropdown(null); openDm(member.userId, member.nickname) }}>
                           💬 대화하기
