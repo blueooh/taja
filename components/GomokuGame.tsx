@@ -298,7 +298,7 @@ export default function GomokuGame({ user, onNeedAuth }: Props) {
               </div>
               <div className={`gomoku-player${currentTurn !== myColor && phase === 'playing' ? ' gomoku-player--active' : ''}`}>
                 <span className="gomoku-stone-icon">{myColor === 'black' ? '⚪' : '⚫'}</span>
-                <GameChat myNickname={user?.nickname ?? ''} opponentNickname={opponentNickname} opponentId={opponentId} />
+                <GameChat myUserId={user?.id ?? ''} opponentNickname={opponentNickname} opponentId={opponentId} />
               </div>
             </div>
             {phase === 'playing' && (

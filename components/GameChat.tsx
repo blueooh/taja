@@ -1,36 +1,31 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import type { RealtimeChannel } from '@supabase/supabase-js'
 
 interface QuickMsg {
   id: string
   text: string
-  fromMe: boolean
   fading: boolean
 }
 
-const VISIBLE_MS = 10_000
+const VISIBLE_MS = 5_000
 const FADE_MS = 800
 const MAX_LENGTH = 200
 
 interface Props {
-  myNickname: string
+  myUserId: string
   opponentNickname: string
   opponentId: string
 }
 
-export default function GameChat({ myNickname, opponentNickname, opponentId }: Props) {
+export default function GameChat({ myUserId, opponentNickname, opponentId }: Props) {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [messages, setMessages] = useState<QuickMsg[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
-  const channelRef = useRef<RealtimeChannel | null>(null)
   const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set())
 
-  // Clean up all pending timers on unmount
   useEffect(() => {
     return () => {
       timersRef.current.forEach(t => clearTimeout(t))
@@ -38,8 +33,8 @@ export default function GameChat({ myNickname, opponentNickname, opponentId }: P
     }
   }, [])
 
-  const addMessage = useCallback((id: string, text: string, fromMe: boolean) => {
-    setMessages(prev => [...prev, { id, text, fromMe, fading: false }])
+  const addMessage = useCallback((id: string, text: string) => {
+    setMessages(prev => [...prev, { id, text, fading: false }])
     const t1 = setTimeout(() => {
       timersRef.current.delete(t1)
       setMessages(prev => prev.map(m => m.id === id ? { ...m, fading: true } : m))
@@ -52,23 +47,18 @@ export default function GameChat({ myNickname, opponentNickname, opponentId }: P
     timersRef.current.add(t1)
   }, [])
 
+  // ChatBox의 dm:inbox 구독에서 전파된 브라우저 이벤트 수신 (중복 Supabase 채널 불필요)
   useEffect(() => {
-    if (!myNickname || !opponentNickname) return
-    const channelName = `game-quickchat:${[myNickname, opponentNickname].sort().join(':')}`
-    const ch = supabase.channel(channelName)
-    channelRef.current = ch
-    ch.on('broadcast', { event: 'quick_chat' }, ({ payload }) => {
-      const { sender, text, id } = payload as { sender: string; text: string; id: string }
-      if (sender === myNickname) return
-      addMessage(id, text, false)
-    }).subscribe()
-    return () => {
-      supabase.removeChannel(ch)
-      channelRef.current = null
+    if (!myUserId || !opponentId) return
+    const handler = (e: Event) => {
+      const msg = (e as CustomEvent).detail as { sender_id: string; content: string; id: string }
+      if (msg.sender_id !== opponentId) return
+      addMessage(msg.id ?? crypto.randomUUID(), msg.content)
     }
-  }, [myNickname, opponentNickname, addMessage])
+    window.addEventListener('taja:dm', handler)
+    return () => window.removeEventListener('taja:dm', handler)
+  }, [myUserId, opponentId, addMessage])
 
-  // Close form on Escape key
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => {
@@ -81,25 +71,16 @@ export default function GameChat({ myNickname, opponentNickname, opponentId }: P
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
     const content = input.trim()
-    if (!content || sending || !myNickname || !opponentId || !channelRef.current) return
-    const msgId = crypto.randomUUID()
+    if (!content || sending || !opponentId) return
     setInput('')
     setSending(true)
     setOpen(false)
-    addMessage(msgId, content, true)
     try {
-      await Promise.allSettled([
-        channelRef.current.send({
-          type: 'broadcast',
-          event: 'quick_chat',
-          payload: { sender: myNickname, text: content, id: msgId },
-        }),
-        fetch('/api/dm', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ to: opponentId, content }),
-        }),
-      ])
+      await fetch('/api/dm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: opponentId, content }),
+      })
     } finally {
       setSending(false)
     }
@@ -115,37 +96,43 @@ export default function GameChat({ myNickname, opponentNickname, opponentId }: P
   if (!opponentNickname) return null
 
   return (
-    <div className="game-chat">
-      <div className="game-chat-bubbles">
-        {messages.map(msg => (
-          <div
-            key={msg.id}
-            className={`game-chat-bubble${msg.fromMe ? ' game-chat-bubble--me' : ' game-chat-bubble--other'}${msg.fading ? ' game-chat-bubble--fading' : ''}`}
-          >
-            {msg.text}
-          </div>
-        ))}
-      </div>
-      <button className="game-chat-nick-btn" onClick={toggleInput} title="메시지 보내기">
-        {opponentNickname}
-      </button>
-      {open && (
-        <form className="game-chat-form" onSubmit={handleSend}>
-          <input
-            ref={inputRef}
-            className="game-chat-input"
-            type="text"
-            placeholder={`${opponentNickname}에게...`}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            maxLength={MAX_LENGTH}
-            disabled={sending}
-          />
-          <button className="game-chat-send-btn" type="submit" disabled={!input.trim() || sending}>
-            전송
-          </button>
-        </form>
+    <>
+      {messages.length > 0 && (
+        <div className="game-chat-overlay">
+          {messages.map(msg => (
+            <div
+              key={msg.id}
+              className={`game-chat-overlay-bubble${msg.fading ? ' game-chat-overlay-bubble--fading' : ''}`}
+            >
+              <span className="game-chat-overlay-nick">{opponentNickname}</span>
+              <span className="game-chat-overlay-text">{msg.text}</span>
+            </div>
+          ))}
+        </div>
       )}
-    </div>
+
+      <div className="game-chat">
+        <button className="game-chat-nick-btn" onClick={toggleInput} title="메시지 보내기">
+          {opponentNickname}
+        </button>
+        {open && (
+          <form className="game-chat-form" onSubmit={handleSend}>
+            <input
+              ref={inputRef}
+              className="game-chat-input"
+              type="text"
+              placeholder={`${opponentNickname}에게...`}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              maxLength={MAX_LENGTH}
+              disabled={sending}
+            />
+            <button className="game-chat-send-btn" type="submit" disabled={!input.trim() || sending}>
+              전송
+            </button>
+          </form>
+        )}
+      </div>
+    </>
   )
 }

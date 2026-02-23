@@ -444,7 +444,7 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
         <div className="gostop-layout">
           <div className="gostop-player-area gostop-player-area--opp">
             <div className="gostop-player-info">
-              <GameChat myNickname={user?.nickname ?? ''} opponentNickname={opponentNickname} opponentId={opponentId} />
+              <GameChat myUserId={user?.id ?? ''} opponentNickname={opponentNickname} opponentId={opponentId} />
               <span className="gostop-score-badge">점수: {gs.oppScore}</span>
               {gs.oppGoCount > 0 && <span className="gostop-go-badge">고 {gs.oppGoCount}회</span>}
               <span style={{ fontSize: 12, color: '#888' }}>패: {gs.oppHandCount}장</span>

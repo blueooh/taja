@@ -272,7 +272,7 @@ export default function BattleGame({ user, onNeedAuth }: Props) {
               <div className="battle-bar-fill battle-bar-me" style={{ width: `${myProgress.value}%` }} />
             </div>
             <div className="battle-player-row" style={{ marginTop: 10 }}>
-              <GameChat myNickname={user?.nickname ?? ''} opponentNickname={room.opponentNickname} opponentId={room.opponentId} />
+              <GameChat myUserId={user?.id ?? ''} opponentNickname={room.opponentNickname} opponentId={room.opponentId} />
               {opponentProgress.finished && (
                 <span className="battle-player-time">{opponentProgress.time.toFixed(1)}s ✓</span>
               )}

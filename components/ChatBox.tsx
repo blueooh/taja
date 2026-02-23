@@ -138,6 +138,8 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
     const inbox = supabase.channel(`dm:inbox:${user.id}`)
     inbox.on('broadcast', { event: 'dm_message' }, ({ payload }) => {
       const msg = payload as DmMessage
+      // 게임 컴포넌트 등 다른 구독자가 중복 채널 없이 수신할 수 있도록 브라우저 이벤트 전파
+      window.dispatchEvent(new CustomEvent('taja:dm', { detail: msg }))
       const isViewingThisConv =
         chatModeRef.current === 'dm' && dmTargetRef.current === msg.sender_id && isOpenRef.current
       if (isViewingThisConv) {
