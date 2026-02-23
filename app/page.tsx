@@ -9,7 +9,7 @@ const OFFLINE_GAMES = [
 ]
 
 const ONLINE_GAMES = [
-  { path: '/battle',  icon: '⚔️', name: '1:1 배틀',  desc: '실시간으로 타자 속도를 겨루세요'   },
+  { path: '/battle',  icon: '⚔️', name: '타자배틀',  desc: '실시간으로 타자 속도를 겨루세요'   },
   { path: '/gomoku',  icon: '⚫', name: '오목',       desc: '5개의 돌을 먼저 놓는 사람이 승리'  },
 ]
 
