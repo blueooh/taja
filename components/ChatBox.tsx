@@ -61,9 +61,6 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
   const [error, setError] = useState<string | null>(null)
   const [onlineMembers, setOnlineMembers] = useState<OnlineMember[]>([])
   const [unreadFrom, setUnreadFrom] = useState<Set<string>>(new Set())  // userId 저장
-  const [onlineDropdown, setOnlineDropdown] = useState<string | null>(null)  // userId
-  const onlineDropdownRef = useRef<HTMLDivElement>(null)
-
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const chatModeRef = useRef<ChatMode>('inbox')
@@ -228,17 +225,6 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
     }
   }
 
-  // 온라인 드롭다운 외부 클릭 시 닫기
-  useEffect(() => {
-    if (!onlineDropdown) return
-    const handler = (e: MouseEvent) => {
-      if (onlineDropdownRef.current && !onlineDropdownRef.current.contains(e.target as Node)) {
-        setOnlineDropdown(null)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [onlineDropdown])
 
   const otherOnline = onlineMembers.filter(m =>
     m.userId ? m.userId !== user?.id : m.nickname !== nickname
@@ -309,21 +295,14 @@ export default function ChatBox({ user, onNeedAuth, isOpen, onToggle, onUnreadCh
               <span className="chatbox-online-label">접속 중</span>
               <div className="chatbox-online-members">
                 {otherOnline.map(member => (
-                  <div key={member.userId || member.nickname} className="chatbox-online-wrap" ref={onlineDropdown === (member.userId || member.nickname) ? onlineDropdownRef : null}>
+                  <div key={member.userId || member.nickname} className="chatbox-online-wrap">
                     <button
-                      className={`chatbox-online-badge${onlineDropdown === (member.userId || member.nickname) ? ' chatbox-online-badge--active' : ''}`}
-                      onClick={() => { const key = member.userId || member.nickname; setOnlineDropdown(prev => prev === key ? null : key) }}
+                      className="chatbox-online-badge"
+                      onClick={() => member.userId && openDm(member.userId, member.nickname)}
                     >
                       <span className="chatbox-online-dot" />
                       {member.nickname}
                     </button>
-                    {onlineDropdown === (member.userId || member.nickname) && member.userId && (
-                      <div className="chatbox-online-menu">
-                        <button className="chatbox-online-menu-item" onClick={() => { setOnlineDropdown(null); openDm(member.userId, member.nickname) }}>
-                          💬 대화하기
-                        </button>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
