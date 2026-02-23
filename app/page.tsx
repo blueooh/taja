@@ -11,7 +11,6 @@ const OFFLINE_GAMES = [
 const ONLINE_GAMES = [
   { path: '/battle',  icon: '⚔️', name: '1:1 배틀',  desc: '실시간으로 타자 속도를 겨루세요'   },
   { path: '/gomoku',  icon: '⚫', name: '오목',       desc: '5개의 돌을 먼저 놓는 사람이 승리'  },
-  { path: '/gostop',  icon: '🎴', name: '고스톱',     desc: '화투로 즐기는 전통 고스톱 대결'    },
 ]
 
 const RANDOM_GAMES = [
