@@ -12,8 +12,6 @@ const GAME_META: Record<string, { icon: string; name: string }> = {
   '/typing':   { icon: '⌨️', name: '스피드 타자' },
   '/acidrain': { icon: '🌧️', name: '산성비'       },
   '/battle':   { icon: '⚔️', name: '타자배틀'    },
-  '/gomoku':   { icon: '⚫', name: '오목'         },
-  '/gostop':   { icon: '🎴', name: '고스톱'       },
   '/ladder':   { icon: '🪜', name: '사다리게임'   },
 }
 
