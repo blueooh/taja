@@ -148,7 +148,6 @@ export default function LadderGame() {
   if (phase === 'setup') {
     return (
       <div className="ladder-setup">
-        <h2 className="ladder-title">🪜 사다리게임</h2>
         <p className="ladder-desc">참가자와 결과를 입력하고 사다리를 타세요!</p>
 
         <div className="ladder-count-row">
@@ -196,8 +195,6 @@ export default function LadderGame() {
 
   return (
     <div className="ladder-playing">
-      <h2 className="ladder-title">🪜 사다리게임</h2>
-
       <div className="ladder-svg-container">
         <svg
           width={svgWidth}
