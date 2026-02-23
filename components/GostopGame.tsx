@@ -12,7 +12,7 @@ import { emptyPile, addCards, resolvePlay, calculateScore, isPeok } from '@/lib/
 import type { CapturedPile } from '@/lib/gostop-rules'
 
 type GostopPhase = 'room_list' | 'waiting' | 'countdown' | 'playing' | 'finished'
-type SubPhase = 'select_card' | 'awaiting_draw' | 'go_stop_decision'
+type SubPhase = 'select_card' | 'awaiting_draw' | 'go_stop_decision' | 'select_match'
 
 interface GameState {
   deck: HwatuCard[]
@@ -120,6 +120,7 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
   const [opponentNickname, setOpponentNickname] = useState('')
   const [countdown, setCountdown] = useState(3)
   const [selectedCard, setSelectedCard] = useState<HwatuCard | null>(null)
+  const [pendingPlay, setPendingPlay] = useState<{ card: HwatuCard; matches: HwatuCard[] } | null>(null)
   const [winner, setWinner] = useState<'me' | 'opponent' | null>(null)
   const [statusMsg, setStatusMsg] = useState('')
   const [myRoomId, setMyRoomId] = useState<string | null>(null)
@@ -369,6 +370,14 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
     if (selectedCard?.id === card.id) {
       soundCardPlace()
       const { taken, newField } = resolvePlay(gs.field, card)
+      const matches = taken.filter(c => c.id !== card.id)
+      // 필드에 같은 달이 2장이면 플레이어가 1장 선택
+      if (matches.length === 2) {
+        setPendingPlay({ card, matches })
+        updateGameState(prev => ({ ...prev, subPhase: 'select_match' }))
+        setSelectedCard(null)
+        return
+      }
       const takenIds = taken.map(c => c.id)
       processPlayCard(card.id, takenIds, 'me', 'mine')
       channelRef.current?.send({ type: 'broadcast', event: 'play_card', payload: { cardId: card.id, takenIds, turnOf: 'me' } })
@@ -380,6 +389,19 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
       soundCardSelect()
       setSelectedCard(card)
     }
+  }
+
+  const handleMatchSelect = (fieldCard: HwatuCard) => {
+    if (!pendingPlay || gameStateRef.current.subPhase !== 'select_match') return
+    const { card } = pendingPlay
+    const takenIds = [card.id, fieldCard.id]
+    const fieldAfterPlay = gameStateRef.current.field.filter(f => f.id !== fieldCard.id)
+    processPlayCard(card.id, takenIds, 'me', 'mine')
+    channelRef.current?.send({ type: 'broadcast', event: 'play_card', payload: { cardId: card.id, takenIds, turnOf: 'me' } })
+    if (roleRef.current === 'player1') {
+      setTimeout(() => doDrawAndBroadcast(card, [fieldCard], fieldAfterPlay, 'me'), 300)
+    }
+    setPendingPlay(null)
   }
 
   const handleGoDecision = (decision: 'go' | 'stop') => {
@@ -476,6 +498,7 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
                   {isMyTurn
                     ? gs.subPhase === 'go_stop_decision' ? '고/스톱 결정!'
                     : gs.subPhase === 'awaiting_draw' ? '드로우 대기...'
+                    : gs.subPhase === 'select_match' ? '가져올 패를 선택하세요'
                     : '내 차례 — 카드를 선택하세요'
                     : '상대방 차례...'}
                 </span>
@@ -483,7 +506,17 @@ export default function GostopGame({ user, onNeedAuth }: Props) {
               {statusMsg && <span className="gostop-status-msg">{statusMsg}</span>}
             </div>
             <div className="gostop-field">
-              {gs.field.map(c => <HwatuCardView key={c.id} card={c} size={fieldCardSize} />)}
+              {gs.field.map(c => {
+                const isSelectable = gs.subPhase === 'select_match' && gs.currentTurn === 'me'
+                  && pendingPlay?.matches.some(m => m.id === c.id)
+                return (
+                  <HwatuCardView
+                    key={c.id} card={c} size={fieldCardSize}
+                    selected={isSelectable}
+                    onClick={isSelectable ? () => handleMatchSelect(c) : undefined}
+                  />
+                )
+              })}
             </div>
             {gs.field.length === 0 && <div style={{ color: '#aaa', textAlign: 'center', padding: 16 }}>필드가 비었습니다</div>}
           </div>
