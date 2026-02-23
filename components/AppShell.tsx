@@ -234,6 +234,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* ===== 메인 ===== */}
         <main className={`app-main${currentGame ? ' app-main--game' : ''}`}>
           {children}
+          {!currentGame && (
+            <footer className="app-footer">
+              <a className="app-footer-email" href="mailto:blueooh@gmail.com">contact: blueooh@gmail.com</a>
+            </footer>
+          )}
         </main>
 
         {/* ===== 채팅 드로어 ===== */}

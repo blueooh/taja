@@ -2636,7 +2636,7 @@ body {
 
 .app-main {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -2646,10 +2646,34 @@ body {
   background: white;
 }
 
+.app-footer {
+  text-align: center;
+  padding: 20px 16px;
+  border-top: 1px solid #e8e8e8;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app-footer-desc {
+  font-size: 0.78rem;
+  color: #aaa;
+  margin: 0;
+}
+
+.app-footer-email {
+  font-size: 0.78rem;
+  color: #bbb;
+  text-decoration: none;
+}
+
+.app-footer-email:hover {
+  color: #888;
+  text-decoration: underline;
+}
+
 /* ===== 게임 홈 ===== */
 .game-home {
-  flex: 1;
-  overflow-y: auto;
   padding: 40px 24px;
   display: flex;
   flex-direction: column;
