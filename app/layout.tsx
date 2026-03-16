@@ -4,8 +4,8 @@ import AppShell from '@/components/AppShell'
 import PreventPinchZoom from '@/components/PreventPinchZoom'
 
 export const metadata: Metadata = {
-  title: '타짜',
-  description: '빠르고 정확한 타이핑을 연습해보세요!',
+  title: '주식 모니터링',
+  description: '관심 종목의 실시간 시세를 모니터링하세요',
 }
 
 export const viewport: Viewport = {

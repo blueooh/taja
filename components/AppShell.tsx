@@ -3,17 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import ChatBox from '@/components/ChatBox'
 import { AppContext } from '@/lib/app-context'
 import type { AuthUser } from '@/lib/auth'
 import { NICKNAME_REGEX } from '@/lib/auth'
-
-const GAME_META: Record<string, { icon: string; name: string }> = {
-  '/typing':   { icon: '⌨️', name: '스피드 타자' },
-  '/acidrain': { icon: '🌧️', name: '산성비'       },
-  '/battle':   { icon: '⚔️', name: '타자배틀'    },
-  '/ladder':   { icon: '🪜', name: '사다리게임'   },
-}
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -29,12 +21,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       // ignore
     }
   }, [])
-
-  // 채팅 드로어
-  const [chatOpen, setChatOpen] = useState(false)
-  const [chatHasUnread, setChatHasUnread] = useState(false)
-  const toggleChat = useCallback(() => setChatOpen(v => !v), [])
-  const closeChat = useCallback(() => setChatOpen(false), [])
 
   // 유저 드롭다운
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -165,8 +151,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const currentGame = GAME_META[pathname]
-
   return (
     <AppContext.Provider value={{ user, onNeedAuth, onLogout: handleLogout }}>
       <div className="app-shell">
@@ -174,32 +158,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* ===== 헤더 ===== */}
         <header className="app-header">
           <div className="app-header-left">
-            <Link href="/" className="app-header-logo">타짜</Link>
-            {currentGame && (
-              <span className="app-header-game-title">
-                {currentGame.icon} {currentGame.name}
-              </span>
-            )}
+            <Link href="/" className="app-header-logo">주식 모니터링</Link>
           </div>
           <div className="app-header-right">
-            <button
-              className={`app-header-chat-btn${chatOpen ? ' app-header-chat-btn--active' : ''}`}
-              onClick={() => user ? toggleChat() : router.push('/login')}
-            >
-              💬 타짜톡
-              {chatHasUnread && !chatOpen && <span className="app-header-chat-unread" />}
-            </button>
-
             <div className="top-bar-user-wrap" ref={dropdownRef}>
               {user === undefined ? (
                 <div className="top-bar-icon-btn" />
+              ) : user ? (
+                <button
+                  className="top-bar-icon-btn top-bar-avatar"
+                  onClick={() => setDropdownOpen(v => !v)}
+                  title={user.nickname}
+                >
+                  {user.nickname[0].toUpperCase()}
+                </button>
               ) : (
                 <button
-                  className={`top-bar-icon-btn${user ? ' top-bar-avatar' : ''}`}
-                  onClick={() => user ? setDropdownOpen(v => !v) : router.push('/login')}
-                  title={user?.nickname ?? '로그인'}
+                  className="app-header-login-btn"
+                  onClick={() => router.push('/login')}
                 >
-                  {user ? user.nickname[0].toUpperCase() : '👤'}
+                  로그인
                 </button>
               )}
               {user && dropdownOpen && (
@@ -214,14 +192,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   </div>
                   <div style={{ height: 1, background: '#e8eaed', margin: '4px 0' }} />
                   <button className="top-bar-dropdown-item" onClick={openNicknameModal}>
-                    ✏️ 닉네임 변경
+                    닉네임 변경
                   </button>
                   <button className="top-bar-dropdown-item top-bar-dropdown-item--danger" onClick={openWithdrawModal}>
-                    🗑️ 회원탈퇴
+                    회원탈퇴
                   </button>
                   <div style={{ height: 1, background: '#e8eaed', margin: '4px 0' }} />
                   <button className="top-bar-dropdown-item" onClick={handleLogout}>
-                    🚪 로그아웃
+                    로그아웃
                   </button>
                 </div>
               )}
@@ -230,29 +208,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* ===== 메인 ===== */}
-        <main className={`app-main${currentGame ? ' app-main--game' : ''}`}>
+        <main className="app-main">
           {children}
-          {!currentGame && (
-            <footer className="app-footer">
-              <a className="app-footer-email" href="mailto:blueooh@gmail.com">contact: blueooh@gmail.com</a>
-            </footer>
-          )}
         </main>
-
-        {/* ===== 채팅 드로어 ===== */}
-        <div
-          className={`chat-drawer-backdrop${chatOpen ? ' chat-drawer-backdrop--open' : ''}`}
-          onClick={closeChat}
-        />
-        <aside className={`chat-drawer${chatOpen ? ' chat-drawer--open' : ''}`}>
-          <ChatBox
-            user={user ?? null}
-            onNeedAuth={onNeedAuth}
-            isOpen={chatOpen}
-            onToggle={toggleChat}
-            onUnreadChange={setChatHasUnread}
-          />
-        </aside>
 
         {/* ===== 닉네임 변경 모달 ===== */}
         {showNicknameModal && (
