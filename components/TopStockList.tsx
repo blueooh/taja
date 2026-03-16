@@ -50,16 +50,18 @@ export default function TopStockList({ watchlistCodes, onToggleWatchlist }: TopS
             const isWatched = watchlistCodes.has(stock.code)
             return (
               <div key={stock.code} className="top-stock-item">
-                <button
-                  className={`star-btn${isWatched ? ' star-btn--active' : ''}`}
-                  onClick={() => onToggleWatchlist({ code: stock.code, name: stock.name, market })}
-                  title={isWatched ? '관심 해제' : '관심 추가'}
-                >
-                  {isWatched ? '★' : '☆'}
-                </button>
                 <span className="top-stock-rank">{i + 1}</span>
                 <div className="top-stock-info">
-                  <span className="top-stock-name">{stock.name}</span>
+                  <span className="top-stock-name">
+                    {stock.name}
+                    <button
+                      className={`star-btn${isWatched ? ' star-btn--active' : ''}`}
+                      onClick={() => onToggleWatchlist({ code: stock.code, name: stock.name, market })}
+                      title={isWatched ? '관심 해제' : '관심 추가'}
+                    >
+                      {isWatched ? '★' : '☆'}
+                    </button>
+                  </span>
                   <span className="top-stock-meta">{stock.code} · {stock.marketCap}</span>
                 </div>
                 <div className="top-stock-price">

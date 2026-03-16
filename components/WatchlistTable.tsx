@@ -57,7 +57,6 @@ export default function WatchlistTable({ items, onToggleWatchlist }: WatchlistTa
       <table className="watchlist-table">
         <thead>
           <tr>
-            <th className="watchlist-th watchlist-th--star"></th>
             <th className="watchlist-th watchlist-th--name">종목명</th>
             <th className="watchlist-th watchlist-th--price">현재가</th>
             <th className="watchlist-th watchlist-th--volume">거래량</th>
@@ -68,21 +67,21 @@ export default function WatchlistTable({ items, onToggleWatchlist }: WatchlistTa
             const quote = quotes[item.stockCode]
             return (
               <tr key={item.stockCode} className="watchlist-row">
-                <td className="watchlist-td watchlist-td--star">
-                  <button
-                    className="star-btn star-btn--active"
-                    onClick={() => onToggleWatchlist({
-                      code: item.stockCode,
-                      name: item.stockName,
-                      market: item.market,
-                    })}
-                    title="관심 해제"
-                  >
-                    ★
-                  </button>
-                </td>
                 <td className="watchlist-td watchlist-td--name">
-                  <span className="watchlist-stock-name">{item.stockName}</span>
+                  <span className="watchlist-stock-name">
+                    {item.stockName}
+                    <button
+                      className="star-btn star-btn--active"
+                      onClick={() => onToggleWatchlist({
+                        code: item.stockCode,
+                        name: item.stockName,
+                        market: item.market,
+                      })}
+                      title="관심 해제"
+                    >
+                      ★
+                    </button>
+                  </span>
                   <span className="watchlist-stock-code">{item.stockCode}</span>
                 </td>
                 <td className="watchlist-td watchlist-td--price">

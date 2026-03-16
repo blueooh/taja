@@ -604,6 +604,9 @@ body {
 }
 
 .top-stock-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.9rem;
   font-weight: 600;
   color: #202124;
@@ -699,6 +702,9 @@ body {
 }
 
 .watchlist-stock-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-weight: 600;
   color: #202124;
   font-size: 0.9rem;
@@ -823,6 +829,9 @@ body {
 }
 
 .stock-search-item-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   flex: 1;
   font-size: 0.9rem;
   font-weight: 600;

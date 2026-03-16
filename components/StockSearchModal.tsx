@@ -67,14 +67,16 @@ export default function StockSearchModal({ onClose, onToggleWatchlist, existingC
             const isWatched = existingCodes.has(stock.code)
             return (
               <div key={stock.code} className="stock-search-item">
-                <button
-                  className={`star-btn${isWatched ? ' star-btn--active' : ''}`}
-                  onClick={() => onToggleWatchlist(stock)}
-                  title={isWatched ? '관심 해제' : '관심 추가'}
-                >
-                  {isWatched ? '★' : '☆'}
-                </button>
-                <span className="stock-search-item-name">{stock.name}</span>
+                <span className="stock-search-item-name">
+                  {stock.name}
+                  <button
+                    className={`star-btn${isWatched ? ' star-btn--active' : ''}`}
+                    onClick={() => onToggleWatchlist(stock)}
+                    title={isWatched ? '관심 해제' : '관심 추가'}
+                  >
+                    {isWatched ? '★' : '☆'}
+                  </button>
+                </span>
                 <span className="stock-search-item-code">{stock.code}</span>
                 <span className="stock-search-item-market">{stock.market}</span>
               </div>
