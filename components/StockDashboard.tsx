@@ -9,8 +9,9 @@ import StockSearchModal from './StockSearchModal'
 import StockChart from './StockChart'
 import StockChatRoom from './StockChatRoom'
 import ChatRoomList from './ChatRoomList'
+import HotStockList from './HotStockList'
 
-type Tab = 'top' | 'watchlist'
+type Tab = 'top' | 'watchlist' | 'hot'
 
 export default function StockDashboard() {
   const { user, onNeedAuth } = useApp()
@@ -119,6 +120,12 @@ export default function StockDashboard() {
           시가총액 TOP
         </button>
         <button
+          className={`stock-dashboard-tab${tab === 'hot' ? ' stock-dashboard-tab--active' : ''}`}
+          onClick={() => setTab('hot')}
+        >
+          핫 종목
+        </button>
+        <button
           className={`stock-dashboard-tab${tab === 'watchlist' ? ' stock-dashboard-tab--active' : ''}`}
           onClick={() => handleTabChange('watchlist')}
         >
@@ -141,6 +148,10 @@ export default function StockDashboard() {
           onStockClick={(code, name) => setChartStock({ code, name })}
           onChatClick={handleChatClick}
         />
+      )}
+
+      {tab === 'hot' && (
+        <HotStockList onChatClick={handleChatClick} />
       )}
 
       {tab === 'watchlist' && (
