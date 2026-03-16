@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { TopStock } from '@/lib/stock-types'
 import StockPriceCell from './StockPriceCell'
+
+const CACHE_TTL = 5_000
+const cache: Record<string, { data: TopStock[]; timestamp: number }> = {}
 
 interface TopStockListProps {
   watchlistCodes: Set<string>
@@ -13,16 +16,33 @@ export default function TopStockList({ watchlistCodes, onToggleWatchlist }: TopS
   const [market, setMarket] = useState<'KOSPI' | 'KOSDAQ'>('KOSPI')
   const [stocks, setStocks] = useState<TopStock[]>([])
   const [loading, setLoading] = useState(true)
+  const abortRef = useRef<AbortController>(undefined)
 
   useEffect(() => {
+    const cached = cache[market]
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      setStocks(cached.data)
+      setLoading(false)
+      return
+    }
+
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
     setLoading(true)
-    fetch(`/api/stocks/top?market=${market}`)
+    fetch(`/api/stocks/top?market=${market}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((json) => {
-        if (json.success) setStocks(json.data)
+        if (json.success) {
+          cache[market] = { data: json.data, timestamp: Date.now() }
+          setStocks(json.data)
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
+
+    return () => controller.abort()
   }, [market])
 
   return (
