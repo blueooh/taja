@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useApp } from '@/lib/app-context'
-import type { WatchlistItem, StockSearchResult } from '@/lib/stock-types'
+import type { WatchlistItem } from '@/lib/stock-types'
 import TopStockList from './TopStockList'
 import WatchlistTable from './WatchlistTable'
 import StockSearchModal from './StockSearchModal'
@@ -44,38 +44,6 @@ export default function StockDashboard() {
     setTab(next)
   }
 
-  const handleAdd = async (stock: StockSearchResult) => {
-    try {
-      const res = await fetch('/api/watchlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          stockCode: stock.code,
-          stockName: stock.name,
-          market: stock.market.includes('KOSDAQ') ? 'KOSDAQ' : 'KOSPI',
-        }),
-      })
-      const json = await res.json()
-      if (json.success) {
-        setItems((prev) => [...prev, json.data])
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  const handleRemove = async (stockCode: string) => {
-    try {
-      const res = await fetch(`/api/watchlist?stockCode=${stockCode}`, { method: 'DELETE' })
-      const json = await res.json()
-      if (json.success) {
-        setItems((prev) => prev.filter((i) => i.stockCode !== stockCode))
-      }
-    } catch {
-      // ignore
-    }
-  }
-
   const existingCodes = new Set(items.map((i) => i.stockCode))
 
   const handleToggleWatchlist = async (stock: { code: string; name: string; market: string }) => {
@@ -83,14 +51,47 @@ export default function StockDashboard() {
       onNeedAuth()
       return
     }
-    if (existingCodes.has(stock.code)) {
-      await handleRemove(stock.code)
+
+    const isRemoving = existingCodes.has(stock.code)
+    const prevItems = items
+
+    if (isRemoving) {
+      setItems((prev) => prev.filter((i) => i.stockCode !== stock.code))
+      try {
+        const res = await fetch(`/api/watchlist?stockCode=${stock.code}`, { method: 'DELETE' })
+        const json = await res.json()
+        if (!json.success) setItems(prevItems)
+      } catch {
+        setItems(prevItems)
+      }
     } else {
-      await handleAdd({
-        code: stock.code,
-        name: stock.name,
-        market: stock.market,
-      })
+      const optimisticItem: WatchlistItem = {
+        id: `temp-${stock.code}`,
+        stockCode: stock.code,
+        stockName: stock.name,
+        market: (stock.market.includes('KOSDAQ') ? 'KOSDAQ' : 'KOSPI') as 'KOSPI' | 'KOSDAQ',
+        sortOrder: items.length,
+      }
+      setItems((prev) => [...prev, optimisticItem])
+      try {
+        const res = await fetch('/api/watchlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            stockCode: stock.code,
+            stockName: stock.name,
+            market: optimisticItem.market,
+          }),
+        })
+        const json = await res.json()
+        if (json.success) {
+          setItems((prev) => prev.map((i) => i.id === optimisticItem.id ? json.data : i))
+        } else {
+          setItems(prevItems)
+        }
+      } catch {
+        setItems(prevItems)
+      }
     }
   }
 
