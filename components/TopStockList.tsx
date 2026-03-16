@@ -4,7 +4,12 @@ import { useState, useEffect } from 'react'
 import type { TopStock } from '@/lib/stock-types'
 import StockPriceCell from './StockPriceCell'
 
-export default function TopStockList() {
+interface TopStockListProps {
+  watchlistCodes: Set<string>
+  onToggleWatchlist: (stock: { code: string; name: string; market: string }) => void
+}
+
+export default function TopStockList({ watchlistCodes, onToggleWatchlist }: TopStockListProps) {
   const [market, setMarket] = useState<'KOSPI' | 'KOSDAQ'>('KOSPI')
   const [stocks, setStocks] = useState<TopStock[]>([])
   const [loading, setLoading] = useState(true)
@@ -41,23 +46,33 @@ export default function TopStockList() {
         <div className="top-stocks-loading">불러오는 중...</div>
       ) : (
         <div className="top-stocks-list">
-          {stocks.map((stock, i) => (
-            <div key={stock.code} className="top-stock-item">
-              <span className="top-stock-rank">{i + 1}</span>
-              <div className="top-stock-info">
-                <span className="top-stock-name">{stock.name}</span>
-                <span className="top-stock-meta">{stock.code} · {stock.marketCap}</span>
+          {stocks.map((stock, i) => {
+            const isWatched = watchlistCodes.has(stock.code)
+            return (
+              <div key={stock.code} className="top-stock-item">
+                <button
+                  className={`star-btn${isWatched ? ' star-btn--active' : ''}`}
+                  onClick={() => onToggleWatchlist({ code: stock.code, name: stock.name, market })}
+                  title={isWatched ? '관심 해제' : '관심 추가'}
+                >
+                  {isWatched ? '★' : '☆'}
+                </button>
+                <span className="top-stock-rank">{i + 1}</span>
+                <div className="top-stock-info">
+                  <span className="top-stock-name">{stock.name}</span>
+                  <span className="top-stock-meta">{stock.code} · {stock.marketCap}</span>
+                </div>
+                <div className="top-stock-price">
+                  <StockPriceCell
+                    price={stock.price}
+                    change={stock.change}
+                    changePercent={stock.changePercent}
+                    changeSign={stock.changeSign}
+                  />
+                </div>
               </div>
-              <div className="top-stock-price">
-                <StockPriceCell
-                  price={stock.price}
-                  change={stock.change}
-                  changePercent={stock.changePercent}
-                  changeSign={stock.changeSign}
-                />
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

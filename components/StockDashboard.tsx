@@ -31,10 +31,10 @@ export default function StockDashboard() {
   }, [])
 
   useEffect(() => {
-    if (tab === 'watchlist' && user && !watchlistLoaded) {
+    if (user && !watchlistLoaded) {
       fetchWatchlist()
     }
-  }, [tab, user, watchlistLoaded, fetchWatchlist])
+  }, [user, watchlistLoaded, fetchWatchlist])
 
   const handleTabChange = (next: Tab) => {
     if (next === 'watchlist' && !user) {
@@ -78,6 +78,22 @@ export default function StockDashboard() {
 
   const existingCodes = new Set(items.map((i) => i.stockCode))
 
+  const handleToggleWatchlist = async (stock: { code: string; name: string; market: string }) => {
+    if (!user) {
+      onNeedAuth()
+      return
+    }
+    if (existingCodes.has(stock.code)) {
+      await handleRemove(stock.code)
+    } else {
+      await handleAdd({
+        code: stock.code,
+        name: stock.name,
+        market: stock.market,
+      })
+    }
+  }
+
   return (
     <div className="stock-dashboard">
       <div className="stock-dashboard-tabs">
@@ -95,7 +111,12 @@ export default function StockDashboard() {
         </button>
       </div>
 
-      {tab === 'top' && <TopStockList />}
+      {tab === 'top' && (
+        <TopStockList
+          watchlistCodes={existingCodes}
+          onToggleWatchlist={handleToggleWatchlist}
+        />
+      )}
 
       {tab === 'watchlist' && (
         <div className="stock-watchlist-section">
@@ -108,13 +129,13 @@ export default function StockDashboard() {
           {!watchlistLoaded ? (
             <div className="stock-dashboard-loading">불러오는 중...</div>
           ) : (
-            <WatchlistTable items={items} onRemove={handleRemove} />
+            <WatchlistTable items={items} onToggleWatchlist={handleToggleWatchlist} />
           )}
 
           {showSearch && (
             <StockSearchModal
               onClose={() => setShowSearch(false)}
-              onAdd={handleAdd}
+              onToggleWatchlist={handleToggleWatchlist}
               existingCodes={existingCodes}
             />
           )}

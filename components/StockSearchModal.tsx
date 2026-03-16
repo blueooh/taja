@@ -5,11 +5,11 @@ import type { StockSearchResult } from '@/lib/stock-types'
 
 interface StockSearchModalProps {
   onClose: () => void
-  onAdd: (stock: StockSearchResult) => void
+  onToggleWatchlist: (stock: { code: string; name: string; market: string }) => void
   existingCodes: Set<string>
 }
 
-export default function StockSearchModal({ onClose, onAdd, existingCodes }: StockSearchModalProps) {
+export default function StockSearchModal({ onClose, onToggleWatchlist, existingCodes }: StockSearchModalProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<StockSearchResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -64,19 +64,20 @@ export default function StockSearchModal({ onClose, onAdd, existingCodes }: Stoc
             <div className="stock-search-empty">검색 결과가 없습니다.</div>
           )}
           {results.map((stock) => {
-            const isAdded = existingCodes.has(stock.code)
+            const isWatched = existingCodes.has(stock.code)
             return (
-              <button
-                key={stock.code}
-                className={`stock-search-item${isAdded ? ' stock-search-item--added' : ''}`}
-                onClick={() => !isAdded && onAdd(stock)}
-                disabled={isAdded}
-              >
+              <div key={stock.code} className="stock-search-item">
+                <button
+                  className={`star-btn${isWatched ? ' star-btn--active' : ''}`}
+                  onClick={() => onToggleWatchlist(stock)}
+                  title={isWatched ? '관심 해제' : '관심 추가'}
+                >
+                  {isWatched ? '★' : '☆'}
+                </button>
                 <span className="stock-search-item-name">{stock.name}</span>
                 <span className="stock-search-item-code">{stock.code}</span>
                 <span className="stock-search-item-market">{stock.market}</span>
-                {isAdded && <span className="stock-search-item-badge">추가됨</span>}
-              </button>
+              </div>
             )
           })}
         </div>

@@ -6,10 +6,10 @@ import StockPriceCell from './StockPriceCell'
 
 interface WatchlistTableProps {
   items: WatchlistItem[]
-  onRemove: (stockCode: string) => void
+  onToggleWatchlist: (stock: { code: string; name: string; market: string }) => void
 }
 
-export default function WatchlistTable({ items, onRemove }: WatchlistTableProps) {
+export default function WatchlistTable({ items, onToggleWatchlist }: WatchlistTableProps) {
   const [quotes, setQuotes] = useState<Record<string, StockQuote>>({})
   const [loading, setLoading] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined)
@@ -57,10 +57,10 @@ export default function WatchlistTable({ items, onRemove }: WatchlistTableProps)
       <table className="watchlist-table">
         <thead>
           <tr>
+            <th className="watchlist-th watchlist-th--star"></th>
             <th className="watchlist-th watchlist-th--name">종목명</th>
             <th className="watchlist-th watchlist-th--price">현재가</th>
             <th className="watchlist-th watchlist-th--volume">거래량</th>
-            <th className="watchlist-th watchlist-th--action"></th>
           </tr>
         </thead>
         <tbody>
@@ -68,6 +68,19 @@ export default function WatchlistTable({ items, onRemove }: WatchlistTableProps)
             const quote = quotes[item.stockCode]
             return (
               <tr key={item.stockCode} className="watchlist-row">
+                <td className="watchlist-td watchlist-td--star">
+                  <button
+                    className="star-btn star-btn--active"
+                    onClick={() => onToggleWatchlist({
+                      code: item.stockCode,
+                      name: item.stockName,
+                      market: item.market,
+                    })}
+                    title="관심 해제"
+                  >
+                    ★
+                  </button>
+                </td>
                 <td className="watchlist-td watchlist-td--name">
                   <span className="watchlist-stock-name">{item.stockName}</span>
                   <span className="watchlist-stock-code">{item.stockCode}</span>
@@ -86,15 +99,6 @@ export default function WatchlistTable({ items, onRemove }: WatchlistTableProps)
                 </td>
                 <td className="watchlist-td watchlist-td--volume">
                   {quote ? quote.volume.toLocaleString('ko-KR') : '-'}
-                </td>
-                <td className="watchlist-td watchlist-td--action">
-                  <button
-                    className="watchlist-remove-btn"
-                    onClick={() => onRemove(item.stockCode)}
-                    title="삭제"
-                  >
-                    &times;
-                  </button>
                 </td>
               </tr>
             )
