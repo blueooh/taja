@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { TopStock } from '@/lib/stock-types'
 import StockPriceCell from './StockPriceCell'
 
-const CACHE_TTL = 5_000
-const cache: Record<string, { data: TopStock[]; timestamp: number }> = {}
+const REFRESH_INTERVAL = 3_000
 
 interface TopStockListProps {
   watchlistCodes: Set<string>
@@ -16,34 +15,28 @@ export default function TopStockList({ watchlistCodes, onToggleWatchlist }: TopS
   const [market, setMarket] = useState<'KOSPI' | 'KOSDAQ'>('KOSPI')
   const [stocks, setStocks] = useState<TopStock[]>([])
   const [loading, setLoading] = useState(true)
-  const abortRef = useRef<AbortController>(undefined)
+  const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined)
+
+  const fetchStocks = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true)
+    try {
+      const res = await fetch(`/api/stocks/top?market=${market}`)
+      const json = await res.json()
+      if (json.success) setStocks(json.data)
+    } catch {
+      // ignore
+    } finally {
+      if (showLoading) setLoading(false)
+    }
+  }, [market])
 
   useEffect(() => {
-    const cached = cache[market]
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      setStocks(cached.data)
-      setLoading(false)
-      return
+    fetchStocks(true)
+    intervalRef.current = setInterval(() => fetchStocks(), REFRESH_INTERVAL)
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
     }
-
-    abortRef.current?.abort()
-    const controller = new AbortController()
-    abortRef.current = controller
-
-    setLoading(true)
-    fetch(`/api/stocks/top?market=${market}`, { signal: controller.signal })
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.success) {
-          cache[market] = { data: json.data, timestamp: Date.now() }
-          setStocks(json.data)
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-
-    return () => controller.abort()
-  }, [market])
+  }, [fetchStocks])
 
   return (
     <div className="top-stocks">
