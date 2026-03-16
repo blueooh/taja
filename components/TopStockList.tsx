@@ -10,9 +10,10 @@ interface TopStockListProps {
   watchlistCodes: Set<string>
   onToggleWatchlist: (stock: { code: string; name: string; market: string }) => void
   onStockClick: (code: string, name: string) => void
+  onChatClick: (code: string, name: string) => void
 }
 
-export default function TopStockList({ watchlistCodes, onToggleWatchlist, onStockClick }: TopStockListProps) {
+export default function TopStockList({ watchlistCodes, onToggleWatchlist, onStockClick, onChatClick }: TopStockListProps) {
   const [market, setMarket] = useState<'KOSPI' | 'KOSDAQ'>('KOSPI')
   const [stocks, setStocks] = useState<TopStock[]>([])
   const [loading, setLoading] = useState(true)
@@ -74,6 +75,13 @@ export default function TopStockList({ watchlistCodes, onToggleWatchlist, onStoc
                       title={isWatched ? '관심 해제' : '관심 추가'}
                     >
                       {isWatched ? '★' : '☆'}
+                    </button>
+                    <button
+                      className="chat-icon-btn"
+                      onClick={(e) => { e.stopPropagation(); onChatClick(stock.code, stock.name) }}
+                      title="톡방"
+                    >
+                      💬
                     </button>
                   </span>
                   <span className="top-stock-meta">{stock.code} · {stock.marketCap}</span>

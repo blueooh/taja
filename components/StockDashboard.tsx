@@ -7,6 +7,8 @@ import TopStockList from './TopStockList'
 import WatchlistTable from './WatchlistTable'
 import StockSearchModal from './StockSearchModal'
 import StockChart from './StockChart'
+import StockChatRoom from './StockChatRoom'
+import ChatRoomList from './ChatRoomList'
 
 type Tab = 'top' | 'watchlist'
 
@@ -17,6 +19,8 @@ export default function StockDashboard() {
   const [watchlistLoaded, setWatchlistLoaded] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const [chartStock, setChartStock] = useState<{ code: string; name: string } | null>(null)
+  const [chatStock, setChatStock] = useState<{ code: string; name: string } | null>(null)
+  const [showChatList, setShowChatList] = useState(false)
 
   const fetchWatchlist = useCallback(async () => {
     try {
@@ -97,6 +101,14 @@ export default function StockDashboard() {
     }
   }
 
+  const handleChatClick = (code: string, name: string) => {
+    if (!user) {
+      onNeedAuth()
+      return
+    }
+    setChatStock({ code, name })
+  }
+
   return (
     <div className="stock-dashboard">
       <div className="stock-dashboard-tabs">
@@ -112,6 +124,14 @@ export default function StockDashboard() {
         >
           관심 종목
         </button>
+        {user && (
+          <button
+            className="stock-dashboard-tab stock-dashboard-tab--chat"
+            onClick={() => setShowChatList(true)}
+          >
+            톡방
+          </button>
+        )}
       </div>
 
       {tab === 'top' && (
@@ -119,6 +139,7 @@ export default function StockDashboard() {
           watchlistCodes={existingCodes}
           onToggleWatchlist={handleToggleWatchlist}
           onStockClick={(code, name) => setChartStock({ code, name })}
+          onChatClick={handleChatClick}
         />
       )}
 
@@ -137,6 +158,7 @@ export default function StockDashboard() {
               items={items}
               onToggleWatchlist={handleToggleWatchlist}
               onStockClick={(code, name) => setChartStock({ code, name })}
+              onChatClick={handleChatClick}
             />
           )}
 
@@ -155,6 +177,21 @@ export default function StockDashboard() {
           code={chartStock.code}
           name={chartStock.name}
           onClose={() => setChartStock(null)}
+        />
+      )}
+
+      {chatStock && (
+        <StockChatRoom
+          stockCode={chatStock.code}
+          stockName={chatStock.name}
+          onClose={() => setChatStock(null)}
+        />
+      )}
+
+      {showChatList && (
+        <ChatRoomList
+          onOpenRoom={(code, name) => handleChatClick(code, name)}
+          onClose={() => setShowChatList(false)}
         />
       )}
     </div>

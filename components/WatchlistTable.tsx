@@ -8,9 +8,10 @@ interface WatchlistTableProps {
   items: WatchlistItem[]
   onToggleWatchlist: (stock: { code: string; name: string; market: string }) => void
   onStockClick: (code: string, name: string) => void
+  onChatClick: (code: string, name: string) => void
 }
 
-export default function WatchlistTable({ items, onToggleWatchlist, onStockClick }: WatchlistTableProps) {
+export default function WatchlistTable({ items, onToggleWatchlist, onStockClick, onChatClick }: WatchlistTableProps) {
   const [quotes, setQuotes] = useState<Record<string, StockQuote>>({})
   const [loading, setLoading] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined)
@@ -81,6 +82,13 @@ export default function WatchlistTable({ items, onToggleWatchlist, onStockClick 
                       title="관심 해제"
                     >
                       ★
+                    </button>
+                    <button
+                      className="chat-icon-btn"
+                      onClick={(e) => { e.stopPropagation(); onChatClick(item.stockCode, item.stockName) }}
+                      title="톡방"
+                    >
+                      💬
                     </button>
                   </span>
                   <span className="watchlist-stock-code">{item.stockCode}</span>
