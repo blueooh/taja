@@ -136,7 +136,7 @@ export default function StockDashboard() {
             className="stock-dashboard-tab stock-dashboard-tab--chat"
             onClick={() => setShowChatList(true)}
           >
-            톡방
+            타짜톡
           </button>
         )}
       </div>
