@@ -6,6 +6,7 @@ import type { WatchlistItem } from '@/lib/stock-types'
 import TopStockList from './TopStockList'
 import WatchlistTable from './WatchlistTable'
 import StockSearchModal from './StockSearchModal'
+import StockChart from './StockChart'
 
 type Tab = 'top' | 'watchlist'
 
@@ -15,6 +16,7 @@ export default function StockDashboard() {
   const [items, setItems] = useState<WatchlistItem[]>([])
   const [watchlistLoaded, setWatchlistLoaded] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
+  const [chartStock, setChartStock] = useState<{ code: string; name: string } | null>(null)
 
   const fetchWatchlist = useCallback(async () => {
     try {
@@ -116,6 +118,7 @@ export default function StockDashboard() {
         <TopStockList
           watchlistCodes={existingCodes}
           onToggleWatchlist={handleToggleWatchlist}
+          onStockClick={(code, name) => setChartStock({ code, name })}
         />
       )}
 
@@ -130,7 +133,11 @@ export default function StockDashboard() {
           {!watchlistLoaded ? (
             <div className="stock-dashboard-loading">불러오는 중...</div>
           ) : (
-            <WatchlistTable items={items} onToggleWatchlist={handleToggleWatchlist} />
+            <WatchlistTable
+              items={items}
+              onToggleWatchlist={handleToggleWatchlist}
+              onStockClick={(code, name) => setChartStock({ code, name })}
+            />
           )}
 
           {showSearch && (
@@ -141,6 +148,14 @@ export default function StockDashboard() {
             />
           )}
         </div>
+      )}
+
+      {chartStock && (
+        <StockChart
+          code={chartStock.code}
+          name={chartStock.name}
+          onClose={() => setChartStock(null)}
+        />
       )}
     </div>
   )

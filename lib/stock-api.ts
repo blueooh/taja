@@ -1,4 +1,4 @@
-import type { StockQuote, StockSearchResult, TopStock } from './stock-types'
+import type { StockQuote, StockSearchResult, TopStock, StockPriceHistory } from './stock-types'
 
 interface NaverStockBasic {
   stockName: string
@@ -141,4 +141,37 @@ export async function searchStocks(keyword: string): Promise<StockSearchResult[]
       market: item.stockExchangeType?.name || 'KOSPI',
     }))
     .slice(0, 20)
+}
+
+interface NaverPriceItem {
+  localTradedAt: string
+  closePrice: string
+  openPrice: string
+  highPrice: string
+  lowPrice: string
+  accumulatedTradingVolume: number
+}
+
+export async function getPriceHistory(code: string, days: number = 30): Promise<StockPriceHistory[]> {
+  const res = await fetch(
+    `https://m.stock.naver.com/api/stock/${code}/price?pageSize=${days}`,
+    {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      next: { revalidate: 0 },
+    }
+  )
+  if (!res.ok) return []
+
+  const data: NaverPriceItem[] = await res.json()
+
+  return data
+    .map((item) => ({
+      date: item.localTradedAt,
+      close: parseInt(item.closePrice?.replace(/,/g, '') || '0', 10),
+      open: parseInt(item.openPrice?.replace(/,/g, '') || '0', 10),
+      high: parseInt(item.highPrice?.replace(/,/g, '') || '0', 10),
+      low: parseInt(item.lowPrice?.replace(/,/g, '') || '0', 10),
+      volume: item.accumulatedTradingVolume || 0,
+    }))
+    .reverse()
 }

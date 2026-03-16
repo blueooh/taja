@@ -37,3 +37,12 @@ export interface StockSearchResult {
   name: string
   market: string
 }
+
+export interface StockPriceHistory {
+  date: string
+  close: number
+  open: number
+  high: number
+  low: number
+  volume: number
+}

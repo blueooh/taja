@@ -9,9 +9,10 @@ const REFRESH_INTERVAL = 3_000
 interface TopStockListProps {
   watchlistCodes: Set<string>
   onToggleWatchlist: (stock: { code: string; name: string; market: string }) => void
+  onStockClick: (code: string, name: string) => void
 }
 
-export default function TopStockList({ watchlistCodes, onToggleWatchlist }: TopStockListProps) {
+export default function TopStockList({ watchlistCodes, onToggleWatchlist, onStockClick }: TopStockListProps) {
   const [market, setMarket] = useState<'KOSPI' | 'KOSDAQ'>('KOSPI')
   const [stocks, setStocks] = useState<TopStock[]>([])
   const [loading, setLoading] = useState(true)
@@ -62,14 +63,14 @@ export default function TopStockList({ watchlistCodes, onToggleWatchlist }: TopS
           {stocks.map((stock, i) => {
             const isWatched = watchlistCodes.has(stock.code)
             return (
-              <div key={stock.code} className="top-stock-item">
+              <div key={stock.code} className="top-stock-item" onClick={() => onStockClick(stock.code, stock.name)} style={{ cursor: 'pointer' }}>
                 <span className="top-stock-rank">{i + 1}</span>
                 <div className="top-stock-info">
                   <span className="top-stock-name">
                     {stock.name}
                     <button
                       className={`star-btn${isWatched ? ' star-btn--active' : ''}`}
-                      onClick={() => onToggleWatchlist({ code: stock.code, name: stock.name, market })}
+                      onClick={(e) => { e.stopPropagation(); onToggleWatchlist({ code: stock.code, name: stock.name, market }) }}
                       title={isWatched ? '관심 해제' : '관심 추가'}
                     >
                       {isWatched ? '★' : '☆'}

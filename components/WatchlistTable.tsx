@@ -7,9 +7,10 @@ import StockPriceCell from './StockPriceCell'
 interface WatchlistTableProps {
   items: WatchlistItem[]
   onToggleWatchlist: (stock: { code: string; name: string; market: string }) => void
+  onStockClick: (code: string, name: string) => void
 }
 
-export default function WatchlistTable({ items, onToggleWatchlist }: WatchlistTableProps) {
+export default function WatchlistTable({ items, onToggleWatchlist, onStockClick }: WatchlistTableProps) {
   const [quotes, setQuotes] = useState<Record<string, StockQuote>>({})
   const [loading, setLoading] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined)
@@ -66,17 +67,17 @@ export default function WatchlistTable({ items, onToggleWatchlist }: WatchlistTa
           {items.map((item) => {
             const quote = quotes[item.stockCode]
             return (
-              <tr key={item.stockCode} className="watchlist-row">
+              <tr key={item.stockCode} className="watchlist-row" onClick={() => onStockClick(item.stockCode, item.stockName)} style={{ cursor: 'pointer' }}>
                 <td className="watchlist-td watchlist-td--name">
                   <span className="watchlist-stock-name">
                     {item.stockName}
                     <button
                       className="star-btn star-btn--active"
-                      onClick={() => onToggleWatchlist({
+                      onClick={(e) => { e.stopPropagation(); onToggleWatchlist({
                         code: item.stockCode,
                         name: item.stockName,
                         market: item.market,
-                      })}
+                      }) }}
                       title="관심 해제"
                     >
                       ★
