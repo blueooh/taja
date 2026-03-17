@@ -42,7 +42,7 @@ export default function HotStockList({ onChatClick }: HotStockListProps) {
   if (stocks.length === 0) {
     return (
       <div className="hot-stocks-empty">
-        <p>최근 1시간 동안 대화가 없습니다.</p>
+        <p>아직 대화가 없습니다.</p>
       </div>
     )
   }
