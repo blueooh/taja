@@ -5,7 +5,8 @@ import { useState, useEffect, useCallback } from 'react'
 interface HotStock {
   stockCode: string
   stockName: string
-  messageCount: number
+  recentCount: number
+  totalCount: number
 }
 
 interface HotStockListProps {
@@ -59,7 +60,12 @@ export default function HotStockList({ onChatClick }: HotStockListProps) {
             <span className="hot-stock-name">{stock.stockName}</span>
             <span className="hot-stock-meta">{stock.stockCode}</span>
           </div>
-          <span className="hot-stock-count">💬 {stock.messageCount}</span>
+          <div className="hot-stock-counts">
+            <span className="hot-stock-recent">1h {stock.recentCount}</span>
+            {stock.totalCount > 0 && (
+              <span className="hot-stock-total">total {stock.totalCount.toLocaleString()}</span>
+            )}
+          </div>
         </div>
       ))}
     </div>

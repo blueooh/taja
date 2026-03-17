@@ -869,10 +869,9 @@ body {
   transform: scale(1.2);
 }
 
-/* ===== 톡방 탭 버튼 ===== */
-.stock-dashboard-tab--chat {
-  margin-left: auto;
-  font-size: 0.82rem;
+/* ===== 타짜톡 탭 콘텐츠 ===== */
+.stock-chat-tab-section {
+  padding: 8px 0;
 }
 
 /* ===== 핫 종목 ===== */
@@ -932,10 +931,24 @@ body {
   color: #9aa0a6;
 }
 
-.hot-stock-count {
+.hot-stock-counts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.hot-stock-recent {
   font-size: 0.82rem;
-  color: #1a73e8;
-  font-weight: 500;
+  color: #d93025;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hot-stock-total {
+  font-size: 0.7rem;
+  color: #9aa0a6;
   white-space: nowrap;
 }
 
@@ -1086,14 +1099,7 @@ body {
   cursor: not-allowed;
 }
 
-/* ===== 톡방 목록 모달 ===== */
-.chat-room-list-modal {
-  width: 90vw;
-  max-width: 400px;
-}
-
 .chat-room-list {
-  max-height: 400px;
   overflow-y: auto;
 }
 

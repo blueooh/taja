@@ -11,7 +11,7 @@ import StockChatRoom from './StockChatRoom'
 import ChatRoomList from './ChatRoomList'
 import HotStockList from './HotStockList'
 
-type Tab = 'top' | 'watchlist' | 'hot'
+type Tab = 'top' | 'watchlist' | 'hot' | 'chat'
 
 export default function StockDashboard() {
   const { user, onNeedAuth } = useApp()
@@ -21,7 +21,6 @@ export default function StockDashboard() {
   const [showSearch, setShowSearch] = useState(false)
   const [chartStock, setChartStock] = useState<{ code: string; name: string } | null>(null)
   const [chatStock, setChatStock] = useState<{ code: string; name: string } | null>(null)
-  const [showChatList, setShowChatList] = useState(false)
 
   const fetchWatchlist = useCallback(async () => {
     try {
@@ -44,7 +43,7 @@ export default function StockDashboard() {
   }, [user, watchlistLoaded, fetchWatchlist])
 
   const handleTabChange = (next: Tab) => {
-    if (next === 'watchlist' && !user) {
+    if ((next === 'watchlist' || next === 'chat') && !user) {
       onNeedAuth()
       return
     }
@@ -131,14 +130,12 @@ export default function StockDashboard() {
         >
           관심 종목
         </button>
-        {user && (
-          <button
-            className="stock-dashboard-tab stock-dashboard-tab--chat"
-            onClick={() => setShowChatList(true)}
-          >
-            타짜톡
-          </button>
-        )}
+        <button
+          className={`stock-dashboard-tab${tab === 'chat' ? ' stock-dashboard-tab--active' : ''}`}
+          onClick={() => handleTabChange('chat')}
+        >
+          타짜톡
+        </button>
       </div>
 
       {tab === 'top' && (
@@ -183,6 +180,12 @@ export default function StockDashboard() {
         </div>
       )}
 
+      {tab === 'chat' && (
+        <div className="stock-chat-tab-section">
+          <ChatRoomList onOpenRoom={(code, name) => handleChatClick(code, name)} />
+        </div>
+      )}
+
       {chartStock && (
         <StockChart
           code={chartStock.code}
@@ -199,12 +202,6 @@ export default function StockDashboard() {
         />
       )}
 
-      {showChatList && (
-        <ChatRoomList
-          onOpenRoom={(code, name) => handleChatClick(code, name)}
-          onClose={() => setShowChatList(false)}
-        />
-      )}
     </div>
   )
 }
